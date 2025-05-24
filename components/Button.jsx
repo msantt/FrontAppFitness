@@ -11,16 +11,21 @@ export default function Button({ title, onPress }) {
 
 const styles = StyleSheet.create({
     button: {
-        width: 200,
-        height: 50,
-        backgroundColor: '#00D95F',
+        zIndex: 1,
+        fontFamily: "./assets/fonts/Reght.ttf",
+        width: 350,
+        height: 60,
+        backgroundColor: '#1DB954',
         borderRadius: 5,
         justifyContent: 'center',
         alignItems: 'center',
+        borderRadius: 30,
     },
     text: {
-        color: "#FFFFFF",
-        fontSize: 20,
+        zIndex: 1,
+        fontFamily: "Rightous-Regular",
+        color: "#000000",
+        fontSize: 25,
         textAlign: "center",
     },
 });

@@ -10,12 +10,14 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@react-navigation/elements": "^2.4.2",
     "@react-navigation/native": "^7.1.9",
+    "@react-navigation/native-stack": "^7.3.13",
     "expo": "~53.0.9",
     "expo-status-bar": "~2.2.3",
-    "native-base": "^3.4.28",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0",
+    "native-base": "^2.15.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
     "react-native": "0.79.2",
     "react-native-gesture-handler": "~2.24.0",
     "react-native-safe-area-context": "5.4.0",

@@ -1,27 +1,15 @@
 
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, Background } from 'react-native';
 
 import Button from '../components/Button';
 import TextComponent from '../components/Text';
 import Links from '../components/Links';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import LoginScreen from './LoginScreen';
 
 import BackgroundWelcome from '../components/BackgroundWelcome';
 
-
-export function PrimeScreen() {
-
-    const navigator = {
-        navegate: (screen) => {
-            if (screen === 'LoginScreen') {
-                return <LoginScreen />;
-            }
-        },
-    };
-
+export function LoginScreen() {
     return (
-        <BackgroundWelcome>
+        <Background>
             <View style={styles.screen}>
                 <View style={styles.topText}>
                     <TextComponent style={{ fontSize: 40 }}>
@@ -37,15 +25,19 @@ export function PrimeScreen() {
 
                 <View style={styles.tochLogin}>
                     <TextComponent>
-                        Já tem uma conta? <Links styles={{ marginBottom: 1 }} onPress={() => navigator.navegate()}      >Login</Links>
+                        Já tem uma conta? <Links styles={{ marginBottom: 1 }} url="">Login</Links>
                     </TextComponent>
                 </View>
             </View>
-        </BackgroundWelcome>
+        </Background>
     );
 }
 
 const styles = StyleSheet.create({
+    background: {
+        flex: 1,
+        backgroundColor: '#212020', // cor de fundo principal
+    },
     screen: {
         flex: 1,
         justifyContent: 'space-between', // distribui os itens verticalmente
