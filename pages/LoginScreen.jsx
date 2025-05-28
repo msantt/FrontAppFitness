@@ -1,60 +1,69 @@
+import { View, StyleSheet, Text } from 'react-native';
 
-import { View, StyleSheet, Text, Background } from 'react-native';
-
-import Button from '../components/Button';
 import TextComponent from '../components/Text';
-import Links from '../components/Links';
+import Input from '../components/Input';
+import Button from '../components/Button';
 
-import BackgroundWelcome from '../components/BackgroundWelcome';
+import BackgroundDefault from '../components/BackgroundDefault';
+import TextLink from '../components/Links';
 
 export function LoginScreen() {
     return (
-        <Background>
+        <BackgroundDefault>
             <View style={styles.screen}>
+
                 <View style={styles.topText}>
-                    <TextComponent style={{ fontSize: 40 }}>
-                        Desafie seus limites{"\n"}
-                        Ganhe mais que{"\n"}
-                        resultados
+                    <TextComponent style={{ fontSize: 45 }}>
+                        Faça Login com{"\n"}
+                        Sua Conta
                     </TextComponent>
                 </View>
 
-                <View style={styles.button}>
-                    <Button title="Iniciar Jornada" onPress={() => alert("Botao funciona")} />
+                <View style={styles.containerInput}>
+                    <View>
+                        <Input>email(Texto ainda)</Input>
+                    </View>
+                    <View>
+                        <Input>Senha(Texto ainda)</Input>
+                    </View>
                 </View>
 
-                <View style={styles.tochLogin}>
-                    <TextComponent>
-                        Já tem uma conta? <Links styles={{ marginBottom: 1 }} url="">Login</Links>
-                    </TextComponent>
+                <View style={{ marginBottom: 20, }}>
+                    <Button title="Entrar"></Button>
                 </View>
+
+                <View>
+                    <TextLink style={styles.link} url={"https://youtube.com"}>esqueceu a senha?</TextLink>
+                </View>
+
+                <View>
+                </View>
+
             </View>
-        </Background>
+        </BackgroundDefault >
     );
-}
+};
+
 
 const styles = StyleSheet.create({
-    background: {
-        flex: 1,
-        backgroundColor: '#212020', // cor de fundo principal
-    },
+
     screen: {
         flex: 1,
-        justifyContent: 'space-between', // distribui os itens verticalmente
+        justifyContent: 'cen', // distribui os itens verticalmente
         alignItems: 'center',
-        paddingVertical: 40,
-        paddingHorizontal: 20,
+        paddingVertical: 200,
     },
     topText: {
-        alignItems: 'center',
-        marginTop: 500,
+        marginTop: 25,
     },
-    button: {
-        marginTop: 200,
+    containerInput: {
+        width: '100%',
         alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 100,
+        marginTop: 120,
     },
-    tochLogin: {
-        alignItems: 'center',
-        marginBottom: 20,
-    },
+    link: {
+        color: '#1DB954',
+    }
 });
