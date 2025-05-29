@@ -13,7 +13,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     text: {
-        fontFamily: "Rightous-Regular",
         color: "#FFFFFF",
         fontSize: 22,
         textAlign: "center",
