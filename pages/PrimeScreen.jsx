@@ -4,9 +4,9 @@ import { View, StyleSheet, Text } from 'react-native';
 import Button from '../components/Button';
 import TextComponent from '../components/Text';
 import Links from '../components/Links';
-import LoginScreen from './LoginScreen';
 
 import BackgroundWelcome from '../components/BackgroundWelcome';
+import { Row } from 'native-base';
 
 
 export function PrimeScreen() {
@@ -20,13 +20,18 @@ export function PrimeScreen() {
                         resultados
                     </TextComponent>
                 </View>
+                <View>
+                    <TextComponent style={{ fontSize: 20, marginTop: 20 }}>
+                        Faça check-ins, acumule pontos e conquiste prêmios de verdade.
+                    </TextComponent>
+                </View>
 
                 <View style={styles.button}>
                     <Button title="Iniciar Jornada" onPress={() => alert("Botao funciona")} />
                 </View>
 
                 <View style={styles.tochLogin}>
-                    <TextComponent>
+                    <TextComponent style={{ flexDirection: 'row' }}>
                         Já tem uma conta? <Links styles={{ marginBottom: 1 }} >Login</Links>
                     </TextComponent>
                 </View>
@@ -38,9 +43,10 @@ export function PrimeScreen() {
 const styles = StyleSheet.create({
     screen: {
         flex: 1,
-        justifyContent: 'space-between', // distribui os itens verticalmente
+        justifyContent: 'flex-start',
+        marginTop: 20,
         alignItems: 'center',
-        paddingVertical: 40,
+        paddingVertical: -20,
         paddingHorizontal: 20,
     },
     topText: {
@@ -52,6 +58,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     tochLogin: {
+        padding: 20,
         alignItems: 'center',
         marginBottom: 20,
     },

@@ -3,17 +3,20 @@ import { View, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
 import TextComponent from '../components/Text';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import SocialButton from '../components/SocialButton';
 
 import BackgroundDefault from '../components/BackgroundDefault';
 import TextLink from '../components/Links';
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Icon } from 'native-base';
 
 export function LoginScreen() {
 
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [lembrar, setLembrar] = useState(false);
+    const [senhaVisivel, setSenhaVisivel] = useState(false);
 
     useEffect(() => {
         AsyncStorage.getItem('loginData').then(data => {
@@ -45,7 +48,7 @@ export function LoginScreen() {
         <BackgroundDefault>
             <View style={styles.screen}>
                 <View style={styles.topText}>
-                    <TextComponent style={{ fontSize: 45 }}>
+                    <TextComponent style={{ fontSize: 45, }}>
                         Faça Login com{"\n"}
                         Sua Conta
                     </TextComponent>
@@ -53,17 +56,48 @@ export function LoginScreen() {
                 <View style={styles.containerInput}>
                     <View>
                         <Input
+                            leftIcon={
+                                <Image
+                                    source={require('../assets/imagens/perfil_icon.png')}
+                                    style={{ width: 24, height: 24, marginRight: 8 }}
+                                    resizeMode="contain"
+                                />
+                            }
                             placeholder="Email"
                             value={email}
                             onChangeText={setEmail}
-                        ></Input>
+                        />
                     </View>
                     <View>
                         <Input
+                            leftIcon={
+                                <Image
+                                    source={require('../assets/imagens/senha_icon.png')}
+                                    style={{ width: 24, height: 24, marginRight: 8 }}
+                                    resizeMode="contain"
+                                />
+                            }
                             placeholder="Senha"
                             value={senha}
                             onChangeText={setSenha}
-                        ></Input>
+                            secureTextEntry={!senhaVisivel}
+
+                            rightIcon={
+                                <TouchableOpacity onPress={() => setSenhaVisivel(!senhaVisivel)}>
+                                    <Image
+                                        source={
+                                            senhaVisivel
+                                                ? require('../assets/imagens/ver_senha_icon.png')
+                                                : require('../assets/imagens/ocultar_senha_icon.png')
+                                        }
+                                        style={{ width: 24, height: 24 }}
+
+                                    />
+                                </TouchableOpacity>
+                            }
+                        >
+
+                        </Input>
                     </View>
                     <View>
                         <TouchableOpacity
@@ -95,34 +129,39 @@ export function LoginScreen() {
                     <Text>_______________________</Text>
                 </View>
 
-                // Adicione este trecho onde deseja exibir os boxes de login social
+                {/*//Adicione este trecho onde deseja exibir os boxes de login social*/}
+
                 <View style={styles.socialContainer}>
-                    <TouchableOpacity style={styles.socialBox} onPress={() => alert('Login com Google')}>
-                        <Image
-                            //{/* source={require('../assets/')}; */}
-                            style={styles.socialImage}
-                            resizeMode="contain"
+                    <TouchableOpacity style={styles.socialBox}>
+                        <SocialButton
+                            icon={require('../assets/imagens/apple_icon.png')}
+                            onPress={() => alert('Login com Apple')}
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBox} onPress={() => alert('Login com Facebook')}>
-                        <Image
-                            //{/*//source={require('../assets/')} */}
-                            style={styles.socialImage}
-                            resizeMode="contain"
+
+                    <TouchableOpacity style={styles.socialBox}>
+                        <SocialButton
+                            icon={require('../assets/imagens/instagram_icon.png')}
+                            onPress={() => alert('Login com Instagram')}
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.socialBox} onPress={() => alert('Login com Apple')}>
-                        <Image
-                            //{/*//source={require('../assets/')} */}
-                            style={styles.socialImage}
-                            resizeMode="contain"
+
+                    <TouchableOpacity style={styles.socialBox}>
+                        <SocialButton
+                            icon={require('../assets/imagens/google_icon.png')}
+                            onPress={() => alert('Login com Google')}
                         />
                     </TouchableOpacity>
                 </View>
 
                 <View style={styles.link}>
-                    <TextComponent>Ainda não possui Conta? </TextComponent>
-                    <TextLink style={styles.link} url={"https://youtube.com"}>Cadastre-se</TextLink>
+                    <View>
+                        <TextComponent>Ainda não possui Conta? </TextComponent>
+                    </View>
+
+                    <View>
+                        <TextLink url={"https://youtube.com"}>Cadastre-se</TextLink>
+                    </View>
                 </View>
 
 
@@ -136,12 +175,13 @@ const styles = StyleSheet.create({
 
     screen: {
         flex: 1,
-        alignItems:'center',
+        alignItems: 'center',
         paddingVertical: 200,
     },
     topText: {
         marginTop: -10,
-        fontFamily: 'bold'
+        fontFamily: 'bold',
+        flexDirection: "row"
     },
     containerInput: {
         width: '100%',
@@ -155,7 +195,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         color: '#1DB954',
         flexDirection: 'row',
-        fontSize: 18,
+        fontSize: 16,
     },
     //{/* Styles para por a checkbox */}
     checkbox: {

@@ -1,20 +1,14 @@
-import {View, Text, StyleSheet} from 'react-native';
+import { Text } from 'react-native';
 
-export default function TextComponent({children, style}) {
+export default function TextComponent({ children, style, ...props }) {
     return (
-        <View style={styles.container}>
-            <Text style={[styles.text, style]}>{children}</Text>
-        </View>
+            <Text style={[defaultStyle, style]} {...props}>{children}</Text>
     );
 }
-const styles = StyleSheet.create({
-    container: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    text: {
-        color: "#FFFFFF",
-        fontSize: 22,
-        textAlign: "center",
-    },
-});
+
+const defaultStyle = {
+    fontFamily: 'Rightous-Regular',
+    color: '#FFFFFF',
+    fontSize: 22,
+    textAlign: "center",
+}
