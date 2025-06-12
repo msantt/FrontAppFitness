@@ -1,18 +1,18 @@
-import { View, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 
 import TextComponent from '../components/Text';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import SocialButton from '../components/SocialButton';
-
 import BackgroundDefault from '../components/BackgroundDefault';
 import TextLink from '../components/Links';
+
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Icon } from 'native-base';
+
+const { width, height } = Dimensions.get('window');
 
 export function LoginScreen() {
-
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [lembrar, setLembrar] = useState(false);
@@ -36,100 +36,82 @@ export function LoginScreen() {
 
     const handleLogin = () => {
         const usuarioEncontrado = usuariosFake.find((u) => u.email === email && u.senha === senha);
-        if (usuarioEncontrado) {
-            alert('Login realizado com Sucesso');
-        } else {
-            alert('Usuario nao foi encontrado.');
-        }
+        alert(usuarioEncontrado ? 'Login realizado com Sucesso' : 'Usuário não foi encontrado.');
     };
-
 
     return (
         <BackgroundDefault>
             <View style={styles.screen}>
                 <View style={styles.topText}>
-                    <TextComponent style={{ fontSize: 45, }}>
-                        Faça Login com{"\n"}
-                        Sua Conta
+                    <TextComponent style={{ fontSize: height * 0.05 }}>
+                        Faça Login com{"\n"}Sua Conta
                     </TextComponent>
                 </View>
+
                 <View style={styles.containerInput}>
-                    <View>
-                        <Input
-                            leftIcon={
+                    <Input
+                        leftIcon={
+                            <Image
+                                source={require('../assets/imagens/perfil_icon.png')}
+                                style={styles.icon}
+                                resizeMode="contain"
+                            />
+                        }
+                        placeholder="Email"
+                        value={email}
+                        onChangeText={setEmail}
+                    />
+
+                    <Input
+                        leftIcon={
+                            <Image
+                                source={require('../assets/imagens/senha_icon.png')}
+                                style={styles.icon}
+                                resizeMode="contain"
+                            />
+                        }
+                        placeholder="Senha"
+                        value={senha}
+                        onChangeText={setSenha}
+                        secureTextEntry={!senhaVisivel}
+                        rightIcon={
+                            <TouchableOpacity onPress={() => setSenhaVisivel(!senhaVisivel)}>
                                 <Image
-                                    source={require('../assets/imagens/perfil_icon.png')}
-                                    style={{ width: 24, height: 24, marginRight: 8 }}
-                                    resizeMode="contain"
+                                    source={
+                                        senhaVisivel
+                                            ? require('../assets/imagens/ver_senha_icon.png')
+                                            : require('../assets/imagens/ocultar_senha_icon.png')
+                                    }
+                                    style={styles.icon}
                                 />
-                            }
-                            placeholder="Email"
-                            value={email}
-                            onChangeText={setEmail}
-                        />
-                    </View>
-                    <View>
-                        <Input
-                            leftIcon={
-                                <Image
-                                    source={require('../assets/imagens/senha_icon.png')}
-                                    style={{ width: 24, height: 24, marginRight: 8 }}
-                                    resizeMode="contain"
-                                />
-                            }
-                            placeholder="Senha"
-                            value={senha}
-                            onChangeText={setSenha}
-                            secureTextEntry={!senhaVisivel}
+                            </TouchableOpacity>
+                        }
+                    />
 
-                            rightIcon={
-                                <TouchableOpacity onPress={() => setSenhaVisivel(!senhaVisivel)}>
-                                    <Image
-                                        source={
-                                            senhaVisivel
-                                                ? require('../assets/imagens/ver_senha_icon.png')
-                                                : require('../assets/imagens/ocultar_senha_icon.png')
-                                        }
-                                        style={{ width: 24, height: 24 }}
-
-                                    />
-                                </TouchableOpacity>
-                            }
-                        >
-
-                        </Input>
-                    </View>
-                    <View>
-                        <TouchableOpacity
-                            style={styles.checkboxContainer}
-                            onPress={() => setLembrar(!lembrar)}>
-                            <View
-                                style={[styles.checkbox, lembrar && styles.checkboxChecked]}>
-                                {lembrar && <Text style={styles.checkmark}>✓</Text>}
-                            </View>
-
-                            <Text style={styles.checkboxLabel}>Lembrar meus dados</Text>
-                        </TouchableOpacity>
-                    </View>
+                    <TouchableOpacity
+                        style={styles.checkboxContainer}
+                        onPress={() => setLembrar(!lembrar)}
+                    >
+                        <View style={[styles.checkbox, lembrar && styles.checkboxChecked]}>
+                            {lembrar && <Text style={styles.checkmark}>✓</Text>}
+                        </View>
+                        <Text style={styles.checkboxLabel}>Lembrar meus dados</Text>
+                    </TouchableOpacity>
                 </View>
 
-                <View style={{ marginBottom: 40, marginTop: -80 }}>
-                    <Button
-                        title="Entrar"
-                        onPress={handleLogin}
-                    ></Button>
-                </View>
-                <View>
-                    <TextLink style={styles.link} url={"https://youtube.com"}>esqueceu a senha?</TextLink>
+                <View style={{ marginBottom: height * 0.030 }}>
+                    <Button title="Entrar" onPress={handleLogin} />
                 </View>
 
-                <View style={{ flexDirection: 'row' }} >
+                <TextLink style={styles.link} url={"https://youtube.com"}>
+                    esqueceu a senha?
+                </TextLink>
+
+                <View style={styles.separator}>
                     <Text>_______________________</Text>
-                    <Text style={{ marginTop: 4 }}> OU </Text>
+                    <Text style={styles.separatorText}> OU </Text>
                     <Text>_______________________</Text>
                 </View>
-
-                {/*//Adicione este trecho onde deseja exibir os boxes de login social*/}
 
                 <View style={styles.socialContainer}>
                     <TouchableOpacity style={styles.socialBox}>
@@ -155,56 +137,50 @@ export function LoginScreen() {
                 </View>
 
                 <View style={styles.link}>
-                    <View>
-                        <TextComponent>Ainda não possui Conta? </TextComponent>
-                    </View>
-
-                    <View>
-                        <TextLink url={"https://youtube.com"}>Cadastre-se</TextLink>
-                    </View>
+                    <TextComponent>Ainda não possui Conta? </TextComponent>
+                    <TextLink url={"https://youtube.com"}>Cadastre-se</TextLink>
                 </View>
-
-
             </View>
-        </BackgroundDefault >
+        </BackgroundDefault>
     );
-};
-
+}
 
 const styles = StyleSheet.create({
-
     screen: {
         flex: 1,
         alignItems: 'center',
-        paddingVertical: 200,
+        paddingVertical: height * 0.10,
     },
     topText: {
-        marginTop: -10,
-        fontFamily: 'bold',
-        flexDirection: "row"
+        marginBottom: height * 0.08,
+        flexDirection: 'row',
     },
     containerInput: {
-        width: '100%',
+        width: width * 0.9 ,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 100,
-        marginTop: 120,
+        marginTop: height * 0.08,
+        marginBottom: height * 0.02,
     },
     link: {
-        marginTop: 20,
-        marginBottom: 20,
+        marginTop: height * 0.015,
+        marginBottom: height * 0.015,
         color: '#1DB954',
         flexDirection: 'row',
-        fontSize: 16,
+        fontSize: width / 20,
     },
-    //{/* Styles para por a checkbox */}
+    icon: {
+        width: width * 0.06,
+        height: width * 0.06,
+        marginRight: width * 0.02,
+    },
     checkbox: {
-        width: 25,
-        height: 25,
-        borderWidth: 3,
+        width: width * 0.06,
+        height: width * 0.06,
+        borderWidth: 2,
         borderColor: '#00D95F',
         borderRadius: 6,
-        marginRight: 10,
+        marginRight: width * 0.025,
         justifyContent: 'center',
         alignItems: 'center',
     },
@@ -214,43 +190,46 @@ const styles = StyleSheet.create({
     checkboxContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 20,
-        marginTop: 5,
-        marginRight: 180,
+        marginTop: height * 0.01,
+        marginBottom: height * 0.02,
+        marginLeft: width * 0.08,
+        alignSelf: 'flex-start',
     },
     checkmark: {
         color: '#fff',
         fontWeight: 'bold',
-        fontSize: 20,
+        fontSize: 16,
     },
     checkboxLabel: {
         color: '#fff',
-        fontSize: 18,
+        fontSize: 16,
     },
-    //{/*Styles para por as imagens */}
     socialContainer: {
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        marginVertical: 20,
+        marginVertical: height * 0.025,
     },
     socialBox: {
-        width: 60,
-        height: 60,
+        width: width * 0.14,
+        height: width * 0.14,
         backgroundColor: '#4F4F4F',
         borderRadius: 12,
         justifyContent: 'center',
         alignItems: 'center',
-        marginTop: 10,
-        marginHorizontal: 40,
-        elevation: 4, // sombra no Android
-        shadowColor: '#000', // sombra no iOS
+        marginHorizontal: width * 0.07,
+        elevation: 4,
+        shadowColor: '#000',
         shadowOpacity: 0.2,
         shadowRadius: 4,
         shadowOffset: { width: 0, height: 2 },
     },
-    socialImage: {
-        width: 36,
-        height: 36,
+    separator: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    separatorText: {
+        marginHorizontal: 8,
+        marginTop: 4,
     },
 });

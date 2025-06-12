@@ -1,4 +1,4 @@
-import { TouchableOpacity, Image, StyleSheet } from 'react-native';
+import { TouchableOpacity, Image, StyleSheet, Dimensions} from 'react-native';
 
 export default function SocialButton({ onPress, icon, style }) {
     return (
@@ -7,6 +7,7 @@ export default function SocialButton({ onPress, icon, style }) {
         </TouchableOpacity>
     );
 }
+
 
 const styles = StyleSheet.create({
     box: {

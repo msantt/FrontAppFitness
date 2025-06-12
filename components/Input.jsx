@@ -1,4 +1,6 @@
-import { TextInput, StyleSheet, View } from 'react-native';
+import { TextInput, StyleSheet, View, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window'); // pega a largura da tela
 
 export default function Input({ leftIcon, rightIcon, value, onChangeText, placeholder, style, ...props }) {
     return (
@@ -21,7 +23,7 @@ const styles = StyleSheet.create({
     inputContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        width: 400,
+        width: width * 0.9, // 90% da tela
         height: 60,
         borderWidth: 2,
         borderColor: '#565656',
@@ -30,6 +32,7 @@ const styles = StyleSheet.create({
         marginBottom: 20,
         marginTop: 10,
         backgroundColor: '#565656',
+        alignSelf: 'center', // garante que fique centralizado
     },
     icon: {
         marginRight: 8,

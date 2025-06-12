@@ -1,5 +1,4 @@
-
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import Button from '../components/Button';
@@ -10,6 +9,7 @@ import BackgroundWelcome from '../components/BackgroundWelcome';
 import { Row } from 'native-base';
 import { LoginScreen } from './LoginScreen';
 
+const { height } = Dimensions.get('window');
 
 export function PrimeScreen() {
 
@@ -26,13 +26,13 @@ export function PrimeScreen() {
                     </TextComponent>
                 </View>
                 <View>
-                    <TextComponent style={{ fontSize: 20, marginTop: 20 }}>
+                    <TextComponent style={{ fontSize: 20, marginTop: height * 0.025 }}>
                         Faça check-ins, acumule pontos e conquiste prêmios de verdade.
                     </TextComponent>
                 </View>
 
                 <View style={styles.button}>
-                    <Button title="Iniciar Jornada" onPress={() => navigation.navgate('LoginScreen')}
+                    <Button title="Iniciar Jornada" onPress={() => navigation.navigate('LoginScreen')}
                     />
                 </View>
 
@@ -50,17 +50,16 @@ const styles = StyleSheet.create({
     screen: {
         flex: 1,
         justifyContent: 'flex-start',
-        marginTop: 20,
+        marginTop: height * 0.03, // 3% da altura da tela
         alignItems: 'center',
-        paddingVertical: -20,
         paddingHorizontal: 20,
     },
     topText: {
         alignItems: 'center',
-        marginTop: 500,
+        marginTop: height * 0.08, // 8% da altura da tela
     },
     button: {
-        marginTop: 200,
+        marginTop: height * 0.06, // 6% da altura da tela
         alignItems: 'center',
     },
     tochLogin: {
@@ -69,4 +68,3 @@ const styles = StyleSheet.create({
         marginBottom: 20,
     },
 });
-

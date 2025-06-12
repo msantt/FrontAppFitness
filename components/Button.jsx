@@ -1,5 +1,6 @@
-import { TouchableOpacity } from "react-native";
-import { Text, StyleSheet } from "react-native";
+import { TouchableOpacity, StyleSheet, Text, Dimensions } from "react-native";
+
+const { width } = Dimensions.get('window'); // pega a largura da tela
 
 export default function Button({ title, onPress }) {
     return (
@@ -12,23 +13,22 @@ export default function Button({ title, onPress }) {
 const styles = StyleSheet.create({
     button: {
         zIndex: 1,
-        //{/* //fontFamily: "./assets/fonts/Reght.ttf", */}
-        width: 350,
+        width: width * 0.9, // 90% da tela, continua grande, mas não ultrapassa
         height: 60,
         backgroundColor: '#1DB954',
-        borderRadius: 5,
+        borderRadius: 30,
         justifyContent: 'center',
         alignItems: 'center',
-        borderRadius: 30,
+        alignSelf: 'center',
     },
     text: {
         zIndex: 1,
-        //{/* fontFamily: "Rightous-Regular",*/}
         color: "#000000",
         fontSize: 25,
         textAlign: "center",
     },
 });
+
 
 
 //{/* // --cor-fundo-principal: #1E1E1E;

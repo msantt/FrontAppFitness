@@ -1,8 +1,15 @@
-import { Text } from 'react-native';
+import { Text, Dimensions } from 'react-native';
+
+const { width } = Dimensions.get('window');
 
 export default function TextComponent({ children, style, ...props }) {
     return (
-            <Text style={[defaultStyle, style]} {...props}>{children}</Text>
+        <Text
+            style={[defaultStyle, { maxWidth: width * 0.9 }, style]}
+            {...props}
+        >
+            {children}
+        </Text>
     );
 }
 
@@ -11,4 +18,4 @@ const defaultStyle = {
     color: '#FFFFFF',
     fontSize: 22,
     textAlign: "center",
-}
+};
