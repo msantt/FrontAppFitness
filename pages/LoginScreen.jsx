@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
-export function LoginScreen() {
+export function LoginScreen({navigation}) {
     const [email, setEmail] = useState('');
     const [senha, setSenha] = useState('');
     const [lembrar, setLembrar] = useState(false);
@@ -100,7 +100,7 @@ export function LoginScreen() {
                 </View>
 
                 <View style={{ marginBottom: height * 0.030 }}>
-                    <Button title="Entrar" onPress={handleLogin} />
+                    <Button title="Entrar" onPress={() => navigation.navigate('SignUpScreen1')} />
                 </View>
 
                 <TextLink style={styles.link} url={"https://youtube.com"}>

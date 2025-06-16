@@ -11,7 +11,7 @@ import { Row } from 'native-base';
 import { LoginScreen } from './LoginScreen';
 
 
-export function PrimeScreen() {
+export function PrimeScreen({navegate}) {
 
     const navigation = useNavigation();
 
@@ -32,7 +32,7 @@ export function PrimeScreen() {
                 </View>
 
                 <View style={styles.button}>
-                    <Button title="Iniciar Jornada" onPress={() => navigation.navgate('LoginScreen')}
+                    <Button title="Iniciar Jornada" onPress={() => navigation.navigate('LoginScreen')}
                     />
                 </View>
 

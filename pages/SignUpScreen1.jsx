@@ -6,7 +6,7 @@ import TextComponent from '../components/Text';
 import SeletorButton from '../components/SeletorButton';
 import WheelSelector from '../components/WheelSelector';
 
-export function SignUpScreen1() {
+export function SignUpScreen1({navigation}) {
 
     const [sexoSelecionado, setSexoSelecionado] = useState('nao_definir');
     const idadeLista = Array.from({ length: 83 }, (_, i) => i + 18); // 18 até 100
@@ -89,14 +89,10 @@ export function SignUpScreen1() {
                         { backgroundColor: podeContinuar ? '#00D95F' : '#A5A5A5' },
                     ]}
                     onPress={() => {
+                        navigation.navigate('SignUpScreen2');
                         // Ação de navegação ou próximo passo
-                        console.log({
-                            sexoSelecionado,
-                            idade: idadeLista[idadeIndex],
-                            peso: pesoLista[pesoIndex],
-                            altura: alturaLista[alturaIndex].toFixed(2),
-                        });
-                    }}
+                    }
+            }
                 >
                     <Text style={styles.botaoTexto}>Continuar</Text>
                 </TouchableOpacity>
