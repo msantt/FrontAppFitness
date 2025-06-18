@@ -12,9 +12,11 @@
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-navigation/elements": "^2.4.2",
-    "@react-navigation/native": "^7.1.9",
+    "@react-navigation/material-top-tabs": "^7.2.15",
+    "@react-navigation/native": "^7.1.11",
     "@react-navigation/native-stack": "^7.3.13",
     "@react-navigation/stack": "^7.3.3",
+    "axios": "^1.10.0",
     "expo": "~53.0.9",
     "expo-status-bar": "~2.2.3",
     "native-base": "^2.15.2",

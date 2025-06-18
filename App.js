@@ -1,3 +1,4 @@
+import { NavigationContainer } from '@react-navigation/native';
 import AppNavigation from './navigation/AppNavigation';
 import { PrimeScreen } from './pages/PrimeScreen';
 import { LoginScreen } from './pages/LoginScreen';

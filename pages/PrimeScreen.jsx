@@ -1,45 +1,43 @@
-
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity, Image, Dimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 import Button from '../components/Button';
 import TextComponent from '../components/Text';
 import Links from '../components/Links';
-
 import BackgroundWelcome from '../components/BackgroundWelcome';
-import { Row } from 'native-base';
-import { LoginScreen } from './LoginScreen';
 
+const { width, height } = Dimensions.get('window');
 
-export function PrimeScreen({navegate}) {
-
+export function PrimeScreen() {
     const navigation = useNavigation();
 
     return (
         <BackgroundWelcome>
-            <View style={styles.screen}>
-                <View style={styles.topText}>
-                    <TextComponent style={{ fontSize: 40 }}>
+            <View style={styles.container}>
+                <View style={styles.content}>
+                    <TextComponent style={styles.title}>
                         Desafie seus limites{"\n"}
                         Ganhe mais que{"\n"}
                         resultados
                     </TextComponent>
-                </View>
-                <View>
-                    <TextComponent style={{ fontSize: 20, marginTop: 20 }}>
+
+                    <TextComponent style={styles.subtitle}>
                         Faça check-ins, acumule pontos e conquiste prêmios de verdade.
                     </TextComponent>
-                </View>
 
-                <View style={styles.button}>
-                    <Button title="Iniciar Jornada" onPress={() => navigation.navigate('LoginScreen')}
-                    />
-                </View>
+                    <View style={styles.buttonContainer}>
+                        <Button 
+                            title="Iniciar Jornada" 
+                            onPress={() => navigation.navigate('LoginScreen')} 
+                        />
+                    </View>
 
-                <View style={styles.tochLogin}>
-                    <TextComponent style={{ flexDirection: 'row' }}>
-                        Já tem uma conta? <Links styles={{ marginBottom: 1 }} >Login</Links>
-                    </TextComponent>
+                    <View style={styles.footer}>
+                        <TextComponent style={styles.footerText}>já possui conta? </TextComponent>
+                        <TouchableOpacity onPress={() => navigation.navigate('LoginScreen')}>
+                            <Text style={styles.footerLink}>Login</Text>
+                        </TouchableOpacity>
+                    </View>
                 </View>
             </View>
         </BackgroundWelcome>
@@ -47,26 +45,47 @@ export function PrimeScreen({navegate}) {
 }
 
 const styles = StyleSheet.create({
-    screen: {
+    container: {
         flex: 1,
-        justifyContent: 'flex-start',
-        marginTop: 20,
+        justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingVertical: -20,
         paddingHorizontal: 20,
+        paddingBottom: height * 0.08,
     },
-    topText: {
+    content: {
+        width: '100%',
         alignItems: 'center',
-        marginTop: 500,
+        gap: height * 0.04,
     },
-    button: {
-        marginTop: 200,
+    title: {
+        fontSize: width * 0.09,
+        textAlign: 'center',
+        fontWeight: 'bold',
+    },
+    subtitle: {
+        fontSize: width * 0.045,
+        textAlign: 'center',
+        paddingHorizontal: 10,
+    },
+    buttonContainer: {
+        width: '80%',
         alignItems: 'center',
     },
-    tochLogin: {
-        padding: 20,
+    loginContainer: {
         alignItems: 'center',
-        marginBottom: 20,
+    },
+    footer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: width * 0.015,
+    },
+    footerText: {
+    fontSize: width * 0.040,
+    color: '#fff',
+    },
+    footerLink: {
+        color: '#1DB954',
+        fontSize: width * 0.040,
     },
 });
-

@@ -1,6 +1,6 @@
 import { TouchableOpacity, StyleSheet, Text, Dimensions } from "react-native";
 
-const { width } = Dimensions.get('window'); // pega a largura da tela
+const { width } = Dimensions.get('window');
 
 export default function Button({ title, onPress }) {
     return (
@@ -13,7 +13,7 @@ export default function Button({ title, onPress }) {
 const styles = StyleSheet.create({
     button: {
         zIndex: 1,
-        width: width * 0.9, // 90% da tela, continua grande, mas não ultrapassa
+        width: width * 0.9,
         height: 60,
         backgroundColor: '#1DB954',
         borderRadius: 30,
