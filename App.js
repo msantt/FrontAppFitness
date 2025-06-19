@@ -1,13 +1,13 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { AuthProvider } from './src/context/AuthContext';
-import AppNavigation from './src/navigation/AppNavigation';
+import { NavigationContainer } from '@react-navigation/native';
+import AppNavigation from './navigation/AppNavigation';
+import { PrimeScreen } from './pages/PrimeScreen';
+import { LoginScreen } from './pages/LoginScreen';
+import { SignUpScreen1 } from './pages/SignUpScreen1';
+import { SignUpScreen2 } from './pages/SignUpScreen2';
+import { SignUpScreen3 } from './pages/SignUpScreen3';
 
 export default function App() {
   return (
-    <AuthProvider>
-      <StatusBar style="auto" />
-      <AppNavigation />
-    </AuthProvider>
-  );
+  <AppNavigation/>
+  )
 }
