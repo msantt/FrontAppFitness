@@ -15,6 +15,10 @@ import { SignUpScreen4 } from "../pages/SignUpScreen4";
 import DesafiosScreen from "../pages/MeusDesafios";
 import { CriarDesafios } from "../pages/CriarDesafio";
 import {DetalhesDesafios} from "../pages/DetalhesDesafios";
+import { ParticiparDesafioScreen } from "../pages/DetalhesParticiparDesafio";
+import { Perfil } from '../pages/Perfil';
+import { Ranking } from "../pages/Ranking";
+
 
 const Stack = createStackNavigator();
 
@@ -55,6 +59,9 @@ export default function AppNavegation() {
         <Stack.Screen name="DesafiosScreen" component={DesafiosScreen} />
         <Stack.Screen name="CriarDesafios" component={CriarDesafios} />
         <Stack.Screen name="DetalhesDesafios" component={DetalhesDesafios} />
+        <Stack.Screen name="ParticiparDesafio" component={ParticiparDesafioScreen} />
+        <Stack.Screen name="Perfil" component={Perfil} />
+        <Stack.Screen name="Ranking" component={Ranking} />
       </Stack.Navigator>
     </NavigationContainer>
   );

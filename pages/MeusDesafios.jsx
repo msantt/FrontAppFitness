@@ -15,14 +15,27 @@ import { apiService } from '../services/apiMooks';
 import { BottomNav } from '../components/BottomNav';
 
 export const DesafiosScreen = ({ navigation }) => {
-  const [desafios, setDesafios] = useState([]);
+  const [meusDesafios, setMeusDesafios] = useState([]);
+  const [desafiosPraVoce, setDesafiosPraVoce] = useState([]);
+  const [explorarDesafios, setExplorarDesafios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadDesafios = async () => {
+  const userId = 'u1';
+
+  const loadAllDesafios = async () => {
     try {
-      const data = await apiService.getDesafios();
-      setDesafios(data);
+      setLoading(true);
+
+      const [meus, praVoce, explorar] = await Promise.all([
+        apiService.getMeusDesafios(userId),
+        apiService.getDesafiosPraVoce(userId),
+        apiService.getDesafios(),
+      ]);
+
+      setMeusDesafios(meus);
+      setDesafiosPraVoce(praVoce);
+      setExplorarDesafios(explorar);
     } catch (error) {
       Alert.alert('Erro', 'Não foi possível carregar os desafios');
     } finally {
@@ -32,16 +45,37 @@ export const DesafiosScreen = ({ navigation }) => {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadDesafios();
+    await loadAllDesafios();
     setRefreshing(false);
   };
 
   useEffect(() => {
-    loadDesafios();
+    loadAllDesafios();
   }, []);
 
-  const handleDesafioPress = (desafio) => {
-    navigation.navigate('DetalhesDesafios', { desafioId: desafio.id });
+  const verificarMembroDoDesafio = async (usuarioId, desafioId) => {
+    try {
+      const membros = await apiService.getMembrosPorUsuario(usuarioId);
+      const isMembro = membros.some((membro) => membro.desafio.id === desafioId);
+      console.log(`Usuário ${usuarioId} é membro do desafio ${desafioId}: ${isMembro}`);
+      return isMembro;
+    } catch (error) {
+      Alert.alert('Erro', 'Não foi possível verificar participação no desafio.');
+      return false;
+    }
+  };
+
+  const handleDesafioPress = async (desafio) => {
+    const isMembro = await verificarMembroDoDesafio(userId, desafio.id);
+
+    if (isMembro) {
+      navigation.navigate('DetalhesDesafios', { desafioId: desafio.id });
+    } else {
+      navigation.navigate('ParticiparDesafio', {
+        desafioId: desafio.id,
+        nomeDesafio: desafio.nome,
+      });
+    }
   };
 
   const handleCreateDesafio = () => {
@@ -54,25 +88,24 @@ export const DesafiosScreen = ({ navigation }) => {
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <View style={styles.grid}>
-          {desafiosList.map((desafio) => (
-            <DesafioCard
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+          {desafiosList.map((desafio, index) => (
+            <View
               key={desafio.id}
-              desafio={desafio}
-              onPress={() => handleDesafioPress(desafio)}
-            />
+              style={{
+                marginRight: index === desafiosList.length - 1 ? 0 : 16,
+              }}
+            >
+              <DesafioCard
+                desafio={desafio}
+                onPress={() => handleDesafioPress(desafio)}
+              />
+            </View>
           ))}
-        </View>
+        </ScrollView>
       </View>
     );
   };
-
-  const desafiosGerais = desafios.filter(
-    (d) => !['Caminhada', 'Artes Marciais', 'Musculação', 'Híbrido'].includes(d.categoria)
-  );
-  const desafiosPraVoce = desafios.filter(
-    (d) => ['Caminhada', 'Artes Marciais', 'Musculação', 'Híbrido'].includes(d.categoria)
-  );
 
   if (loading) {
     return (
@@ -87,11 +120,11 @@ export const DesafiosScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      <Header 
-        title="Bem Vindo aos Desafios"
-        subtitle="Click em um dos desafios para conhecer mais"
+      <Header
+        title="Bem-vindo aos Desafios"
+        subtitle="Clique em um desafio para conhecer mais"
       />
-      
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
@@ -99,16 +132,18 @@ export const DesafiosScreen = ({ navigation }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {renderDesafiosSection('Desafios', desafiosGerais)}
+        {renderDesafiosSection('Meus Desafios', meusDesafios)}
         {renderDesafiosSection('Pra Você', desafiosPraVoce)}
+        {renderDesafiosSection('Explorar', explorarDesafios)}
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={handleCreateDesafio}>
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
+
       <View style={styles.bottomNav}>
-      <BottomNav active="Desafios" />
-    </View>      
+        <BottomNav active="DesafiosScreen" />
+      </View>
     </View>
   );
 };
@@ -136,17 +171,13 @@ const styles = StyleSheet.create({
   },
   section: {
     marginBottom: 32,
+    paddingHorizontal: 8,
   },
   sectionTitle: {
     color: '#FFF',
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  grid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    marginBottom: 12,
   },
   fab: {
     position: 'absolute',
@@ -155,15 +186,12 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: '#1DB954', // novo tom de verde
+    backgroundColor: '#1DB954',
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 8,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
   },
@@ -184,21 +212,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 20,
   },
-  navItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    height: 50,
-  },
-  navItemActive: {
-    backgroundColor: '#1DB954',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
-  },
-  navIcon: {
-    fontSize: 20,
-    color: '#FFF',
-  },
 });
+
 export default DesafiosScreen;

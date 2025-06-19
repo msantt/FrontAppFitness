@@ -10,7 +10,7 @@ export const BottomNav = ({ active }) => {
     { name: 'Home', icon: <Feather name="home" size={20} color="#FFF" />, route: 'Home' },
     { name: 'Grupos', icon: <Ionicons name="people-outline" size={20} color="#FFF" />, route: 'Grupos' },
     { name: 'Checkin', icon: <Feather name="check-circle" size={20} color="#FFF" />, route: 'Checkin' },
-    { name: 'Desafios', icon: <MaterialIcons name="emoji-events" size={20} color="#FFF" />, route: 'Desafios' },
+    { name: 'Desafios', icon: <MaterialIcons name="emoji-events" size={20} color="#FFF" />, route: 'DesafiosScreen' },
     { name: 'Perfil', icon: <FontAwesome5 name="user" size={20} color="#FFF" />, route: 'Perfil' },
   ];
 
@@ -43,7 +43,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 20,
-    paddingBottom: 20,
   },
   navItem: {
     flex: 1,
@@ -53,8 +52,8 @@ const styles = StyleSheet.create({
   },
   navItemActive: {
     backgroundColor: '#1DB954',
-    borderRadius: 25,
-    width: 50,
-    height: 50,
+    borderRadius: 15,
+    width: 100,
+    height: 70,
   },
 });

@@ -379,6 +379,26 @@ const MOCK_CHECKINS = [
     status: 'CONCLUIDO',
   },
   {
+    id: 'c14',
+    membroDesafio: {
+      id: 'md1',
+      usuario: {
+        id: 'u1',
+        nome: 'João Silva',
+        avatar: 'https://plus.unsplash.com/premium_photo-1689568126014-06fea9d5d341?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGVyZmlsfGVufDB8fDB8fHwwfHx8fDE2OTY1MjQ0NjA&auto=format&fit=crop&w=3000&q=60',
+      },
+      desafio: {
+        id: '1',
+        nome: 'Corrida de 5km',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-joao-foto1.jpg',
+    local: 'Parque Central',
+    dataHoraCheckin: '2025-06-16T07:00:00',
+    status: 'CONCLUIDO',
+  },
+  {
     id: 'c2',
     membroDesafio: {
       id: 'md2',
@@ -418,11 +438,236 @@ const MOCK_CHECKINS = [
     dataHoraCheckin: '2025-06-15T10:00:00',
     status: 'PENDENTE',
   },
+  {
+    id: 'c4',
+    membroDesafio: {
+      id: 'md4',
+      usuario: {
+        id: 'u4',
+        nome: 'Ana Paula',
+        avatar: 'https://exemplo.com/avatar-ana.jpg',
+      },
+      desafio: {
+        id: '2',
+        nome: 'Musculação Básica',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-ana-foto1.jpg',
+    local: 'Academia Central',
+    dataHoraCheckin: '2025-05-20T18:00:00',
+    status: 'CONCLUIDO',
+  },
+  {
+    id: 'c5',
+    membroDesafio: {
+      id: 'md5',
+      usuario: {
+        id: 'u5',
+        nome: 'Lucas Mendes',
+        avatar: 'https://exemplo.com/avatar-lucas.jpg',
+      },
+      desafio: {
+        id: '2',
+        nome: 'Musculação Básica',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-lucas-foto1.jpg',
+    local: 'Academia Central',
+    dataHoraCheckin: '2025-05-22T19:30:00',
+    status: 'EM_ANDAMENTO',
+  },
+  {
+    id: 'c6',
+    membroDesafio: {
+      id: 'md6',
+      usuario: {
+        id: 'u6',
+        nome: 'Fernanda Lima',
+        avatar: 'https://exemplo.com/avatar-fernanda.jpg',
+      },
+      desafio: {
+        id: '2',
+        nome: 'Musculação Básica',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-fernanda-foto1.jpg',
+    local: 'Academia Central',
+    dataHoraCheckin: '2025-05-25T20:30:00',
+    status: 'PENDENTE',
+  },
+
+  {
+    id: 'c7',
+    membroDesafio: {
+      id: 'md7',
+      usuario: {
+        id: 'u7',
+        nome: 'Bruno Silva',
+        avatar: 'https://exemplo.com/avatar-bruno.jpg',
+      },
+      desafio: {
+        id: '3',
+        nome: 'Artes Marciais Iniciante',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-bruno-foto1.jpg',
+    local: 'Dojo Central',
+    dataHoraCheckin: '2025-06-12T10:00:00',
+    status: 'CONCLUIDO',
+  },
+  {
+    id: 'c8',
+    membroDesafio: {
+      id: 'md8',
+      usuario: {
+        id: 'u8',
+        nome: 'Paula Torres',
+        avatar: 'https://exemplo.com/avatar-paula.jpg',
+      },
+      desafio: {
+        id: '3',
+        nome: 'Artes Marciais Iniciante',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-paula-foto1.jpg',
+    local: 'Dojo Central',
+    dataHoraCheckin: '2025-06-12T11:00:00',
+    status: 'EM_ANDAMENTO',
+  },
+  {
+    id: 'c9',
+    membroDesafio: {
+      id: 'md9',
+      usuario: {
+        id: 'u9',
+        nome: 'Ricardo Gomes',
+        avatar: 'https://exemplo.com/avatar-ricardo.jpg',
+      },
+      desafio: {
+        id: '3',
+        nome: 'Artes Marciais Iniciante',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-ricardo-foto1.jpg',
+    local: 'Dojo Central',
+    dataHoraCheckin: '2025-06-12T12:00:00',
+    status: 'PENDENTE',
+  },
+
+  {
+    id: 'c10',
+    membroDesafio: {
+      id: 'md10',
+      usuario: {
+        id: 'u10',
+        nome: 'Sofia Martins',
+        avatar: 'https://exemplo.com/avatar-sofia.jpg',
+      },
+      desafio: {
+        id: '4',
+        nome: 'Yoga para Iniciantes',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-sofia-foto1.jpg',
+    local: 'Estúdio Yoga',
+    dataHoraCheckin: '2025-06-15T07:00:00',
+    status: 'CONCLUIDO',
+  },
+  {
+    id: 'c11',
+    membroDesafio: {
+      id: 'md11',
+      usuario: {
+        id: 'u11',
+        nome: 'Gabriel Costa',
+        avatar: 'https://exemplo.com/avatar-gabriel.jpg',
+      },
+      desafio: {
+        id: '4',
+        nome: 'Yoga para Iniciantes',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-gabriel-foto1.jpg',
+    local: 'Estúdio Yoga',
+    dataHoraCheckin: '2025-06-15T08:00:00',
+    status: 'EM_ANDAMENTO',
+  },
+  {
+    id: 'c12',
+    membroDesafio: {
+      id: 'md12',
+      usuario: {
+        id: 'u12',
+        nome: 'Helena Rocha',
+        avatar: 'https://exemplo.com/avatar-helena.jpg',
+      },
+      desafio: {
+        id: '4',
+        nome: 'Yoga para Iniciantes',
+      },
+      status: 'ATIVO',
+    },
+    urlFoto: 'https://example.com/checkin-helena-foto1.jpg',
+    local: 'Estúdio Yoga',
+    dataHoraCheckin: '2025-06-15T09:00:00',
+    status: 'PENDENTE',
+  },
+  {
+  id: 'c13',
+  membroDesafio: {
+    id: 'md13',
+    usuario: {
+      id: 'u1',
+      nome: 'João Silva',
+      avatar: 'https://plus.unsplash.com/premium_photo-1689568126014-06fea9d5d341?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGVyZmlsfGVufDB8fDB8fHwwfHx8fDE2OTY1MjQ0NjA&auto=format&fit=crop&w=3000&q=60',
+    },
+    desafio: {
+      id: '4',
+      nome: 'Yoga para Iniciantes',
+    },
+    status: 'ATIVO',
+  },
+  urlFoto: 'https://example.com/checkin-joao-foto2.jpg',
+  local: 'Estúdio Yoga',
+  dataHoraCheckin: '2025-06-17T07:00:00',
+  status: 'CONCLUIDO',
+},
+{
+  id: 'c14',
+  membroDesafio: {
+    id: 'md14',
+    usuario: {
+      id: 'u1',
+      nome: 'João Silva',
+      avatar: 'https://plus.unsplash.com/premium_photo-1689568126014-06fea9d5d341?fm=jpg&q=60&w=3000&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8cGVyZmlsfGVufDB8fDB8fHwwfHx8fDE2OTY1MjQ0NjA&auto=format&fit=crop&w=3000&q=60',
+    },
+    desafio: {
+      id: '5',
+      nome: 'Desafio de Resistência',
+    },
+    status: 'ATIVO',
+  },
+  urlFoto: 'https://example.com/checkin-joao-foto3.jpg',
+  local: 'Parque Central',
+  dataHoraCheckin: '2025-06-18T06:00:00',
+  status: 'CONCLUIDO',
+},
+
 ];
 
 
+// Adicionando funções mockadas
+
 export const apiService = {
-  //login
+  // 🔐 Login
   login: async (email, senha) => {
     console.log(`Mock login recebido: email=${email}, senha=${senha}`);
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -434,7 +679,7 @@ export const apiService = {
       return {
         token: 'mocked-jwt-token-abcdef123456',
         user: {
-          id: 1,
+          id: 'u1',
           nome: 'Usuário de Teste',
           email: usuarioValido,
         },
@@ -443,40 +688,8 @@ export const apiService = {
       throw new Error('Email ou senha inválidos');
     }
   },
-  async listarCategorias() {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          { id: "cat1", nome: "Corrida" },
-          { id: "cat2", nome: "Ciclismo" },
-          { id: "cat3", nome: "Caminhada" },
-          { id: "cat4", nome: "Yoga" },
-        ]);
-      }, 500);
-    });
-  },
 
-  async listarGruposDoUsuario(userId) {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        resolve([
-          { id: "grp1", nome: "Grupo Academia" },
-          { id: "grp2", nome: "Desafio dos 30 Dias" },
-          { id: "grp3", nome: "Amigos na Corrida" },
-        ]);
-      }, 500);
-    });
-  },
-
-  async criarDesafio(body) {
-    return new Promise((resolve) => {
-      console.log("Desafio enviado:", body);
-      setTimeout(() => {
-        resolve({ mensagem: "Desafio criado com sucesso", data: body });
-      }, 1000);
-    });
-  },
-
+  // 🔥 Listar todos os desafios
   getDesafios: async () => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -485,6 +698,7 @@ export const apiService = {
     });
   },
 
+  // 🔍 Buscar desafio por ID
   getDesafioById: async (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -497,6 +711,8 @@ export const apiService = {
       }, 400);
     });
   },
+
+  // 📋 Buscar check-ins por desafio
   getCheckInsByDesafioId: async (desafioId) => {
     return new Promise((resolve) => {
       setTimeout(() => {
@@ -508,6 +724,18 @@ export const apiService = {
     });
   },
 
+   getCheckInsByUsuarioId: async (usuarioId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const checkins = MOCK_CHECKINS.filter(
+          (checkin) => checkin.membroDesafio.usuario.id === usuarioId
+        );
+        resolve(checkins);
+      }, 500);
+    });
+  },
+
+  // 📋 Buscar check-in específico
   getCheckInById: async (id) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
@@ -520,4 +748,241 @@ export const apiService = {
       }, 400);
     });
   },
+
+  // 🏷️ Listar categorias
+  listarCategorias: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          { id: 'cat1', nome: 'Corrida' },
+          { id: 'cat2', nome: 'Ciclismo' },
+          { id: 'cat3', nome: 'Caminhada' },
+          { id: 'cat4', nome: 'Yoga' },
+        ]);
+      }, 500);
+    });
+  },
+
+  getMembrosPorUsuario: async (usuarioId) => {
+  console.log(`Mock: buscando membros para usuário ${usuarioId}`);
+
+  await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const membros = MOCK_CHECKINS
+    .filter((checkin) => checkin.membroDesafio.usuario.id === usuarioId)
+    .map((checkin) => checkin.membroDesafio);
+
+  const membrosUnicos = membros.filter(
+    (membro, index, self) =>
+      index ===
+      self.findIndex((m) => m.id === membro.id)
+  );
+
+  return membrosUnicos;
+},
+
+
+  // 👥 Listar grupos do usuário
+  listarGruposDoUsuario: async (userId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          { id: 'grp1', nome: 'Grupo Academia' },
+          { id: 'grp2', nome: 'Desafio dos 30 Dias' },
+          { id: 'grp3', nome: 'Amigos na Corrida' },
+        ]);
+      }, 500);
+    });
+  },
+
+  // 🆕 Criar desafio
+  criarDesafio: async (body) => {
+    return new Promise((resolve) => {
+      console.log('Desafio enviado:', body);
+      setTimeout(() => {
+        resolve({ mensagem: 'Desafio criado com sucesso', data: body });
+      }, 1000);
+    });
+  },
+
+  // 🟩🟦🟥 Novas chamadas mockadas 🟩🟦🟥
+
+  // 🔹 Meus desafios (simula desafios que o usuário participa)
+  getMeusDesafios: async (usuarioId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const meus = MOCK_DESAFIOS.filter((d) =>
+          ['1', '2'].includes(d.id) // Simulando que o usuário participa desses
+        );
+        resolve(meus);
+      }, 500);
+    });
+  },
+
+  // 🔸 Desafios "Pra Você" (simula desafios recomendados)
+  getDesafiosPraVoce: async (usuarioId) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const praVoce = MOCK_DESAFIOS.filter((d) =>
+          ['3', '4'].includes(d.id) // Simula recomendados
+        );
+        resolve(praVoce);
+      }, 500);
+    });
+  },
+
+  // 🔺 Explorar desafios (todos os desafios públicos disponíveis)
+  getExplorarDesafios: async () => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const explorar = MOCK_DESAFIOS.filter((d) =>
+          ['5', '6'].includes(d.id) // Simula desafios para explorar
+        );
+        resolve(explorar);
+      }, 500);
+    });
+  },
+
+  participarDesafio: async (usuarioId, desafioId, status = 'ATIVO', dataConclusao = null) => {
+    const dataFinal = dataConclusao || new Date().toISOString().slice(0, 10);
+
+    const body = {
+      usuario: { id: usuarioId },
+      desafio: { id: desafioId },
+      status,
+      dataConclusao: dataFinal,
+    };
+
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    console.log('POST /membros-desafio', JSON.stringify(body, null, 2));
+
+    return {
+      id: 'mock-id-123',
+      ...body,
+      criadoEm: new Date().toISOString(),
+    };
+  },
+
+  getRankingByDesafioId: async (desafioId) => {
+  return {
+    podium: {
+      primeiro: {
+        id: "u2",
+        nome: "Usuário 2",
+        avatar: "https://example.com/avatar2.png",
+        pontos: 1600,
+      },
+      segundo: {
+        id: "u1",
+        nome: "Usuário 1",
+        avatar: "https://example.com/avatar1.png",
+        pontos: 1400,
+      },
+      terceiro: {
+        id: "u3",
+        nome: "Usuário 3",
+        avatar: "https://example.com/avatar3.png",
+        pontos: 1300,
+      },
+    },
+    ranking: [
+      {
+        id: "u2",
+        nome: "Usuário 2",
+        avatar: "https://example.com/avatar2.png",
+        pontos: 1600,
+        posicao: 1,
+        diasConsecutivos: 5,
+      },
+      {
+        id: "u1",
+        nome: "Usuário 1",
+        avatar: "https://example.com/avatar1.png",
+        pontos: 1400,
+        posicao: 2,
+        diasConsecutivos: 3,
+      },
+      {
+        id: "u3",
+        nome: "Usuário 3",
+        avatar: "https://example.com/avatar3.png",
+        pontos: 1300,
+        posicao: 3,
+        diasConsecutivos: 2,
+      },
+      {
+        id: "u4",
+        nome: "Usuário 3",
+        avatar: "https://example.com/avatar3.png",
+        pontos: 1200,
+        posicao: 4,
+        diasConsecutivos: 2,
+      },
+      // outros usuários...
+    ],
+  };
+},
+  desistirDoDesafio: async (desafioId, usuarioId) => {
+    return new Promise((resolve, reject) => {
+      console.log("Chamada API: desistirDoDesafio");
+      console.log("desafioId:", desafioId);
+      console.log("usuarioId:", usuarioId);
+
+    
+      setTimeout(() => {
+        if (desafioId && usuarioId) {
+          resolve({ message: "Desistência confirmada" });
+        } else {
+          reject(new Error("IDs inválidos para desistir do desafio"));
+        }
+      }, 1000);
+    });
+  },
+  getUsuario: async () => {
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    return {
+      id: "1",
+      nome: "Joao Oliveira",
+      email: "joao.oliveira@email.com",
+      senha: "Maria123@", // normalmente você não deveria expor isso no frontend
+      role: "USER",
+      dataNascimento: "1988-09-15T00:00:00.000+00:00",
+      objetivo: "GANHO_DE_MASSA_MUSCULAR",
+      urlFoto: "https://newmillen.com.br/wp-content/uploads/2021/09/tipos-de-academia-1.jpeg",
+      dataCriacao: "2024-06-05T10:30:00",
+      status: "ATIVO",
+      exibirHistorico: true,
+      tipoUsuario: "MEMBRO",
+      saldo: 250.0,
+      chavePix: "maria@pix.com",
+      bio: "Apaixonado por desafios e evolução constante! 💪",
+      username: "joao_oliveira",
+      estatisticas: {
+        desafiosCompletos: 8,
+        desafiosAtivos: 2,
+        pontosTotais: 950,
+      },
+    };
+  },
+
+  atualizarUsuario: async (dados) => {
+    console.log("Usuário atualizado:", dados);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return { ...dados };
+  },
+
+  depositar: async (valor) => {
+    console.log(`Depósito de R$ ${valor} realizado`);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return { status: "sucesso" };
+  },
+
+  sacar: async (valor) => {
+    console.log(`Saque de R$ ${valor} realizado`);
+    await new Promise((resolve) => setTimeout(resolve, 500));
+    return { status: "sucesso" };
+  },
 };
+

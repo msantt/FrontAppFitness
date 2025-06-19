@@ -1,19 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
   ScrollView,
-  TextInput,
   TouchableOpacity,
   Alert,
+  StyleSheet,
+  TextInput,
 } from "react-native";
-import { StyleSheet } from "react-native";
-import { Feather } from "@expo/vector-icons";
 import { Header } from "../components/Header";
-import { BottomNav } from "../components/BottomNav";
-import { apiService } from "../services/apiMooks";
+import  {BottomNav} from "../components/BottomNav";
 import Button from "../components/ButtonDesafios";
-import { useEffect } from "react";
+import { apiService } from "../services/apiMooks";
+import { MaskedTextInput } from "react-native-mask-text";
+import CurrencyInput from "react-native-currency-input";
 
 export const CriarDesafios = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -21,7 +21,7 @@ export const CriarDesafios = ({ navigation }) => {
     descricao: "",
     tipoDesafio: "COMUM",
     recompensa: "",
-    valorAposta: "",
+    valorAposta: 0,
     dataInicio: "",
     dataFim: "",
     status: "ATIVO",
@@ -32,20 +32,13 @@ export const CriarDesafios = ({ navigation }) => {
   });
 
   const [loading, setLoading] = useState(false);
-
-  const updateFormData = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  };
-
   const [categorias, setCategorias] = useState([]);
   const [grupos, setGrupos] = useState([]);
 
-  const userId = "a2d41293-983e-49d4-b2de-7f2d405e4614";
+  const userId = "u1";
 
   useEffect(() => {
+    console.log("Fetching categorias e grupos");
     const fetchData = async () => {
       try {
         const categoriasResponse = await apiService.listarCategorias();
@@ -57,9 +50,15 @@ export const CriarDesafios = ({ navigation }) => {
         Alert.alert("Erro", "Erro ao carregar categorias ou grupos");
       }
     };
-
     fetchData();
   }, []);
+
+  const updateFormData = (field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+  };
 
   const renderDropdown = (label, value, options, onSelect) => (
     <View style={styles.inputContainer}>
@@ -87,43 +86,69 @@ export const CriarDesafios = ({ navigation }) => {
   );
 
   const validarFormulario = () => {
-    if (!formData.nome.trim()) {
-      Alert.alert("Erro", "Nome do desafio é obrigatório");
+    const obrigatorios = [
+      { campo: "nome", label: "Nome do desafio" },
+      { campo: "descricao", label: "Descrição" },
+      { campo: "recompensa", label: "Recompensa" },
+      { campo: "valorAposta", label: "Valor da aposta" },
+      { campo: "dataInicio", label: "Data de início" },
+      { campo: "dataFim", label: "Data de término" },
+      { campo: "categoriaId", label: "Categoria" },
+      { campo: "grupoId", label: "Grupo" },
+    ];
+
+    for (let item of obrigatorios) {
+      if (
+        formData[item.campo] === "" ||
+        formData[item.campo] === null ||
+        formData[item.campo]?.toString().trim() === ""
+      ) {
+        Alert.alert("Erro", `${item.label} é obrigatório`);
+        return false;
+      }
+    }
+
+    if (parseFloat(formData.valorAposta) <= 0) {
+      Alert.alert("Erro", "O valor da aposta deve ser maior que zero.");
       return false;
     }
-    if (!formData.descricao.trim()) {
-      Alert.alert("Erro", "Descrição é obrigatória");
+    
+    const dataInicioISO = formatDateToISO(formData.dataInicio);
+    const dataFimISO = formatDateToISO(formData.dataFim);
+    if (new Date(dataInicioISO) < new Date()) {
+      Alert.alert("Erro", "A data de início deve ser no futuro.");
       return false;
     }
-    if (!formData.recompensa.trim()) {
-      Alert.alert("Erro", "Recompensa é obrigatória");
+    if (new Date(dataFimISO) < new Date(dataInicioISO)) {
+      Alert.alert("Erro", "A data de término deve ser após a data de início.");
       return false;
     }
-    if (!formData.valorAposta) {
-      Alert.alert("Erro", "Valor da aposta é obrigatório");
-      return false;
-    }
-    if (!formData.dataInicio) {
-      Alert.alert("Erro", "Data de início é obrigatória");
-      return false;
-    }
-    if (!formData.dataFim) {
-      Alert.alert("Erro", "Data de término é obrigatória");
-      return false;
-    }
-    if (!formData.categoriaId.trim()) {
-      Alert.alert("Erro", "Categoria é obrigatória");
-      return false;
-    }
-    if (!formData.grupoId.trim()) {
-      Alert.alert("Erro", "Grupo é obrigatório");
-      return false;
-    }
-    if (!formData.criadorId.trim()) {
-      Alert.alert("Erro", "ID do criador é obrigatório");
-      return false;
-    }
+
     return true;
+  };
+
+  const formatDateToISO = (dateStr) => {
+    const [day, month, year] = dateStr.split("-");
+    return `${year}-${month}-${day}`;
+  };
+
+  const confirmarCriacao = () => {
+    Alert.alert(
+      "Confirmação",
+      `Você deseja criar o desafio e debitar o valor da aposta de R$ ${parseFloat(
+        formData.valorAposta
+      ).toFixed(2)} do seu saldo?`,
+      [
+        {
+          text: "Cancelar",
+          style: "cancel",
+        },
+        {
+          text: "Confirmar",
+          onPress: criarDesafio,
+        },
+      ]
+    );
   };
 
   const criarDesafio = async () => {
@@ -134,102 +159,153 @@ export const CriarDesafios = ({ navigation }) => {
       descricao: formData.descricao,
       categoria: { id: formData.categoriaId },
       grupos: { id: formData.grupoId },
-      dataInicio: `${formData.dataInicio}T06:00:00`,
-      dataFim: `${formData.dataFim}T23:59:59`,
+      dataInicio: `${formatDateToISO(formData.dataInicio)}T06:00:00`,
+      dataFim: `${formatDateToISO(formData.dataFim)}T23:59:59`,
       status: formData.status,
       recompensa: formData.recompensa,
       isPublico: formData.isPublico,
-      valorAposta: parseFloat(formData.valorAposta),
+      valorAposta: parseFloat(formData.valorAposta).toFixed(2).toString(),
       tipoDesafio: formData.tipoDesafio,
-      criador: { id: formData.criadorId },
+      criador: { id: userId },
     };
 
     setLoading(true);
     try {
       await apiService.criarDesafio(body);
-      Alert.alert("Sucesso!", "Desafio criado com sucesso!", [
-        {
-          text: "OK",
-          onPress: () => navigation.goBack(),
-        },
-      ]);
+      Alert.alert(
+        "Sucesso!",
+        `Desafio criado com sucesso! O valor da aposta de R$ ${parseFloat(
+          formData.valorAposta
+        ).toFixed(2)} foi debitado do seu saldo.`,
+        [
+          {
+            text: "OK",
+            onPress: () => navigation.goBack(),
+          },
+        ]
+      );
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível criar o desafio");
+      Alert.alert(
+        "Erro",
+        `Não foi possível criar o desafio. O valor da aposta de R$ ${parseFloat(
+          formData.valorAposta
+        ).toFixed(2)} foi extornado para o seu saldo.`
+      );
     } finally {
       setLoading(false);
     }
   };
 
-  const renderInput = (label, value, onChange, placeholder, keyboardType) => (
+  const renderInput = (
+    label,
+    value,
+    onChange,
+    placeholder,
+    keyboardType = "default",
+    maxLength = 100,
+    mask = null
+  ) => (
     <View style={styles.inputContainer}>
       <Text style={styles.label}>{label}</Text>
-      <TextInput
-        style={styles.textInput}
-        value={value}
-        onChangeText={onChange}
-        placeholder={placeholder}
-        placeholderTextColor="#666"
-        keyboardType={keyboardType || "default"}
-      />
+      {mask ? (
+        <MaskedTextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor="#888"
+          keyboardType={keyboardType}
+          maxLength={maxLength}
+          mask={mask}
+        />
+      ) : (
+        <TextInput
+          style={styles.textInput}
+          value={value}
+          onChangeText={onChange}
+          placeholder={placeholder}
+          placeholderTextColor="#888"
+          keyboardType={keyboardType}
+          maxLength={maxLength}
+        />
+      )}
     </View>
   );
 
   return (
     <View style={styles.container}>
       <Header
-        title="Criar Desafios"
+        title="Criar Desafio"
         subtitle="Preencha os campos abaixo"
         showBackButton
         onBackPress={() => navigation.goBack()}
       />
 
-      <ScrollView
-        contentContainerStyle={[styles.scrollContent, { paddingBottom: 100 }]}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {renderInput(
           "Nome",
           formData.nome,
           (text) => updateFormData("nome", text),
-          "Digite o nome do desafio"
+          "Digite o nome do desafio",
+          "default",
+          50
         )}
         {renderInput(
           "Descrição",
           formData.descricao,
           (text) => updateFormData("descricao", text),
-          "Digite a descrição"
+          "Digite a descrição",
+          "default",
+          200
         )}
         {renderInput(
           "Recompensa",
           formData.recompensa,
           (text) => updateFormData("recompensa", text),
-          "Ex.: Medalha + Pontos"
+          "Ex.: Medalha + Pontos",
+          "default",
+          50
         )}
-        {renderInput(
-          "Valor da Aposta (R$)",
-          formData.valorAposta,
-          (text) => updateFormData("valorAposta", text),
-          "Ex.: 50.00",
-          "numeric"
-        )}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Valor da Aposta (R$)</Text>
+          <CurrencyInput
+            style={styles.textInput}
+            value={formData.valorAposta}
+            onChangeValue={(value) => updateFormData("valorAposta", value)}
+            prefix="R$ "
+            delimiter="."
+            separator=","
+            precision={2}
+            placeholder="R$ 0,00"
+            placeholderTextColor="#888"
+            keyboardType="numeric"
+          />
+        </View>
         {renderInput(
           "Data de Início",
           formData.dataInicio,
           (text) => updateFormData("dataInicio", text),
-          "YYYY-MM-DD"
+          "DD-MM-YYYY",
+          "numeric",
+          10,
+          "99-99-9999"
         )}
         {renderInput(
           "Data de Término",
           formData.dataFim,
           (text) => updateFormData("dataFim", text),
-          "YYYY-MM-DD"
+          "DD-MM-YYYY",
+          "numeric",
+          10,
+          "99-99-9999"
         )}
+
         {renderDropdown(
           "Categoria",
           formData.categoriaId,
           categorias,
           (value) => updateFormData("categoriaId", value)
         )}
-
         {renderDropdown("Grupo", formData.grupoId, grupos, (value) =>
           updateFormData("grupoId", value)
         )}
@@ -276,16 +352,17 @@ export const CriarDesafios = ({ navigation }) => {
         <View style={styles.createButtonContainer}>
           <Button
             title={loading ? "Criando..." : "Criar Desafio"}
-            onPress={criarDesafio}
-            loading={loading}
-            style={styles.createButton}
+            onPress={confirmarCriacao}
+            disabled={loading}
           />
         </View>
       </ScrollView>
 
+      
       <View style={styles.bottomNav}>
-        <BottomNav active={"Desafios"} />
+        <BottomNav active={"DesafiosScreen"} />
       </View>
+
     </View>
   );
 };
@@ -293,40 +370,11 @@ export const CriarDesafios = ({ navigation }) => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: "#121212",
   },
   scrollContent: {
     padding: 20,
     paddingBottom: 150,
-  },
-  uploadContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  uploadLabel: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  uploadButton: {
-    width: "100%",
-    height: 150,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderStyle: "dashed",
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#f9f9f9",
-  },
-  uploadText: {
-    color: "#666",
-  },
-  uploadIcon: {
-    fontSize: 50,
-    color: "#666",
   },
   inputContainer: {
     marginBottom: 15,
@@ -335,107 +383,74 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 5,
+    color: "#DDD",
   },
   textInput: {
-    height: 40,
-    borderColor: "#ccc",
+    height: 45,
+    borderColor: "#444",
     borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 10,
     fontSize: 16,
-    color: "#333",
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: "top",
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 15,
-  },
-  halfWidth: {
-    width: "48%",
+    color: "#EEE",
+    backgroundColor: "#1E1E1E",
   },
   dropdown: {
-    height: 40,
-    borderColor: "#ccc",
+    height: 45,
+    borderColor: "#444",
     borderWidth: 1,
     borderRadius: 5,
     justifyContent: "center",
     paddingHorizontal: 10,
+    backgroundColor: "#1E1E1E",
     position: "relative",
   },
   dropdownText: {
     fontSize: 16,
-    color: "#333",
-  },
-  placeholder: {
-    color: "#999",
+    color: "#EEE",
   },
   dropdownIcon: {
     position: "absolute",
     right: 10,
     top: 10,
     fontSize: 16,
-    color: "#333",
+    color: "#888",
   },
-  regrasContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginTop: 10,
+  placeholder: {
+    color: "#888",
   },
-  addButton: {
-    backgroundColor: "#1DB954",
-    borderRadius: 20,
-    width: 40,
-    height: 40,
-    justifyContent: "center",
-    alignItems: "center",
-    marginLeft: 10,
+  switchContainer: {
+    marginBottom: 15,
   },
-  addButtonText: {
-    color: "#fff",
-    fontSize: 24,
-    lineHeight: 24,
-  },
-  regraItem: {
+  optionContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    backgroundColor: "#eee",
-    padding: 10,
-    borderRadius: 5,
-    marginTop: 8,
+    marginTop: 10,
   },
-  regraText: {
-    fontSize: 16,
-    color: "#333",
+  optionButton: {
     flex: 1,
-  },
-  removeButton: {
-    color: "red",
-    fontSize: 18,
-    marginLeft: 10,
-  },
-  valorContainer: {
-    flexDirection: "row",
+    paddingVertical: 12,
+    backgroundColor: "#2C2C2C",
+    borderRadius: 8,
     alignItems: "center",
-  },
-  moedaSymbol: {
-    fontSize: 16,
-    marginRight: 5,
-  },
-  valorInput: {
-    flex: 1,
-    height: 40,
-    borderColor: "#ccc",
+    marginHorizontal: 5,
     borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
-    fontSize: 16,
-    color: "#333",
+    borderColor: "#444",
   },
-  createButton: {
+  optionButtonSelected: {
+    backgroundColor: "#1DB954",
+    borderColor: "#1DB954",
+  },
+  optionText: {
+    color: "#CCC",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  optionTextSelected: {
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  createButtonContainer: {
     marginTop: 20,
   },
   bottomNav: {
@@ -449,41 +464,5 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
-  },
-  switchContainer: {
-    marginBottom: 15,
-  },
-
-  optionContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-
-  optionButton: {
-    flex: 1,
-    paddingVertical: 12,
-    backgroundColor: "#f2f2f2",
-    borderRadius: 8,
-    alignItems: "center",
-    marginHorizontal: 5,
-    borderWidth: 1,
-    borderColor: "#ccc",
-  },
-
-  optionButtonSelected: {
-    backgroundColor: "#1DB954",
-    borderColor: "#1DB954",
-  },
-
-  optionText: {
-    color: "#333",
-    fontSize: 16,
-    fontWeight: "500",
-  },
-
-  optionTextSelected: {
-    color: "#fff",
-    fontWeight: "bold",
   },
 });
