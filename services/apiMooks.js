@@ -984,5 +984,117 @@ export const apiService = {
     await new Promise((resolve) => setTimeout(resolve, 500));
     return { status: "sucesso" };
   },
+
+  getNotificacoes: async () => {
+    return [
+      {
+        data_criacao: '2025-06-18T09:00:00.000000',
+        notificacoes: [
+          {
+            uuid: '10',
+            mensagem: 'Novo desafio "Desafio dos 10k" foi criado.',
+            tipo: 'NOVO_DESAFIO',
+            lida: 0,
+          },
+          {
+            uuid: '11',
+            mensagem: 'Você recebeu um convite para o grupo "Corredores Noturnos".',
+            tipo: 'CONVITE_GRUPO',
+            lida: 0,
+          },
+        ],
+      },
+      {
+        data_criacao: '2025-06-17T21:30:00.000000',
+        notificacoes: [
+          {
+            uuid: '4',
+            mensagem: 'Atenção! Faltam 2 dias para encerrar o desafio "Corrida Matinal".',
+            tipo: 'ALERTA_TEMPO',
+            lida: 1,
+          },
+          {
+            uuid: '5',
+            mensagem: 'Você recebeu um convite para o desafio "Desafio dos Feras".',
+            tipo: 'CONVITE_DESAFIO',
+            lida: 0,
+          },
+        ],
+      },
+      {
+        data_criacao: '2025-06-17T18:47:36.000000',
+        notificacoes: [
+          {
+            uuid: '1',
+            mensagem: 'O desafio Corrida Matinal 7 Dias foi encerrado.',
+            tipo: 'DESAFIO_ENCERRADO',
+            lida: 0,
+          },
+          {
+            uuid: '2',
+            mensagem: 'Parabéns! Você ficou em 2º lugar no desafio "Corrida Matinal".',
+            tipo: 'PREMIO_DESAFIO',
+            lida: 0,
+          },
+        ],
+      },
+      {
+        data_criacao: '2025-06-17T18:40:07.000000',
+        notificacoes: [
+          {
+            uuid: '3',
+            mensagem: 'Lucas Almeida fez um check-in no desafio Corrida Matinal.',
+            tipo: 'CHECK_IN',
+            lida: 1,
+          },
+        ],
+      },
+      {
+        data_criacao: '2025-06-16T10:15:00.000000',
+        notificacoes: [
+          {
+            uuid: '6',
+            mensagem: 'Maria Souza fez um check-in no desafio "Desafio dos 10k".',
+            tipo: 'CHECK_IN',
+            lida: 1,
+          },
+          {
+            uuid: '7',
+            mensagem: 'Novo membro João entrou no desafio "Desafio dos Feras".',
+            tipo: 'NOVO_MEMBRO_DESAFIO',
+            lida: 0,
+          },
+          {
+            uuid: '8',
+            mensagem: 'Pedro comentou no desafio "Desafio dos Feras".',
+            tipo: 'NOVO_COMENTARIO',
+            lida: 0,
+          },
+        ],
+      },
+      {
+        data_criacao: '2025-06-15T15:45:00.000000',
+        notificacoes: [
+          {
+            uuid: '9',
+            mensagem: 'O desafio "Desafio da Resistência" foi cancelado.',
+            tipo: 'DESAFIO_CANCELADO',
+            lida: 1,
+          },
+        ],
+      },
+    ];
+  },
+
+  getEstatisticas: async () => ({
+    totalNotificacoes: 12,
+    notificacoesNaoLidas: 5,
+  }),
+
+  getConfiguracoes: async () => ({
+    desafios: true,
+    receberEmail: false,
+    notificacoesPush: true,
+  }),
 };
 

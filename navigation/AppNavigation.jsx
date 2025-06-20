@@ -18,6 +18,7 @@ import {DetalhesDesafios} from "../pages/DetalhesDesafios";
 import { ParticiparDesafioScreen } from "../pages/DetalhesParticiparDesafio";
 import { Perfil } from '../pages/Perfil';
 import { Ranking } from "../pages/Ranking";
+import { Notificacao } from  "../pages/Notificacao"
 
 
 const Stack = createStackNavigator();
@@ -62,6 +63,7 @@ export default function AppNavegation() {
         <Stack.Screen name="ParticiparDesafio" component={ParticiparDesafioScreen} />
         <Stack.Screen name="Perfil" component={Perfil} />
         <Stack.Screen name="Ranking" component={Ranking} />
+        <Stack.Screen name="Notificacao" component={Notificacao} />
       </Stack.Navigator>
     </NavigationContainer>
   );

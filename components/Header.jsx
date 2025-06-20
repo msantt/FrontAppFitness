@@ -6,6 +6,7 @@ import {
   StyleSheet,
   StatusBar,
 } from 'react-native';
+import { NotificationBell } from '../components/NotificationBell';
 
 export const Header = ({
   title,
@@ -31,17 +32,16 @@ export const Header = ({
           <Text style={styles.title}>{title}</Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
-        
+
+        <View style={styles.rightComponent}>
+          <NotificationBell hasNotification={true} />
+          {rightComponent}
+        </View>
+
         {showShareButton && (
           <TouchableOpacity style={styles.shareButton} onPress={onSharePress}>
             <Text style={styles.shareIcon}>⤴</Text>
           </TouchableOpacity>
-        )}
-        
-        {rightComponent && (
-          <View style={styles.rightComponent}>
-            {rightComponent}
-          </View>
         )}
       </View>
     </View>
@@ -96,5 +96,7 @@ const styles = StyleSheet.create({
   },
   rightComponent: {
     marginLeft: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

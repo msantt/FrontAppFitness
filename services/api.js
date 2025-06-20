@@ -20,6 +20,20 @@ export const apiService = {
     }
   },
 
+  listarNotificacoesPorUsuario: async (uuid) => {
+  try {
+    const response = await fetch(`${API_URL}/usuarios/${uuid}/notificacoes`);
+    if (!response.ok) {
+      if (response.status === 204) return []; // sem conteúdo, retorna lista vazia
+      throw new Error('Erro ao buscar notificações');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Erro em listarNotificacoesPorUsuario:', error);
+    throw error;
+  }
+},
+
   // 🔍 Buscar usuário por email
   getUsuarioByEmail: async (email) => {
     try {
