@@ -25,7 +25,6 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Header } from '../components/Header';
-import Button from '../components/ButtonDesafios';
 import { apiService } from '../services/apiMooks';
 
 const { width } = Dimensions.get('window');
@@ -38,12 +37,12 @@ const formatDateTime = (dateString) => {
   const year = d.getFullYear();
   const hours = String(d.getHours()).padStart(2, '0');
   const minutes = String(d.getMinutes()).padStart(2, '0');
-  return `${day}-${month}-${year} ${hours}:${minutes}`;
+  return `${day}/${month}/${year} às ${hours}:${minutes}`;
 };
 
 const tipoNotificacaoParaIcone = {
   CHECK_IN: { name: 'check-circle-outline', color: colors.primary },
-  NOVO_DESAFIO: { name: 'trophy-outline', color: '#ffc107' },  // Você pode substituir por outra cor se preferir
+  NOVO_DESAFIO: { name: 'trophy-outline', color: '#ffc107' },
   NOVO_MEMBRO: { name: 'account-plus-outline', color: '#17a2b8' },
   NOVO_COMENTARIO: { name: 'comment-outline', color: '#fd7e14' },
   ALERTA_TEMPO: { name: 'alarm-light-outline', color: '#dc3545' },
@@ -55,7 +54,7 @@ const tipoNotificacaoParaIcone = {
   NOVO_MEMBRO_DESAFIO: { name: 'account-group-outline', color: '#20c997' },
 };
 
-const NotificacaoItem = ({ notificacao }) => {
+const NotificacaoItem = ({ notificacao, onPress }) => {
   const tipo = notificacao.tipo ?? 'NOVO_DESAFIO';
   const { name, color } = tipoNotificacaoParaIcone[tipo] || {
     name: 'bell-outline',
@@ -64,13 +63,11 @@ const NotificacaoItem = ({ notificacao }) => {
 
   return (
     <TouchableOpacity
-      style={[
-        styles.itemContainer,
-        notificacao.lida ? styles.lida : {},
-      ]}
+      style={styles.itemContainer}
       activeOpacity={0.85}
+      onPress={() => onPress(notificacao)}
     >
-      <View style={[styles.iconWrapper, { backgroundColor: color + '33' /* 20% opacity */ }]}>
+      <View style={[styles.iconWrapper, { backgroundColor: color + '33' }]}>
         <Icon name={name} size={28} color={color} />
       </View>
       <View style={styles.textWrapper}>
@@ -80,11 +77,15 @@ const NotificacaoItem = ({ notificacao }) => {
   );
 };
 
-const NotificacaoGrupo = ({ grupo }) => (
+const NotificacaoGrupo = ({ grupo, onPress }) => (
   <View style={styles.groupContainer}>
     <Text style={styles.groupDate}>{formatDateTime(grupo.data_criacao)}</Text>
     {grupo.notificacoes.map((notificacao) => (
-      <NotificacaoItem key={notificacao.uuid} notificacao={notificacao} />
+      <NotificacaoItem
+        key={notificacao.uuid}
+        notificacao={notificacao}
+        onPress={onPress}
+      />
     ))}
   </View>
 );
@@ -95,6 +96,9 @@ export const Notificacao = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [modalConfiguracoes, setModalConfiguracoes] = useState(false);
   const [configuracoes, setConfiguracoes] = useState({ desafios: true });
+
+  const [notificacaoSelecionada, setNotificacaoSelecionada] = useState(null);
+  const [modalDetalhesVisible, setModalDetalhesVisible] = useState(false);
 
   const loadDados = async () => {
     try {
@@ -123,9 +127,22 @@ export const Notificacao = () => {
     setRefreshing(false);
   };
 
+  const abrirNotificacao = (notificacao) => {
+    setNotificacaoSelecionada(notificacao);
+    setModalDetalhesVisible(true);
+  };
+
+  const getIcone = (tipo) => {
+    return tipoNotificacaoParaIcone[tipo] || {
+      name: 'bell-outline',
+      color: colors.textMuted,
+    };
+  };
+
   return (
     <View style={styles.container}>
       <Header title="Notificações" darkMode />
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Carregando...</Text>
@@ -138,33 +155,21 @@ export const Notificacao = () => {
         <FlatList
           data={grupos}
           keyExtractor={(item) => item.data_criacao}
-          renderItem={({ item }) => <NotificacaoGrupo grupo={item} />}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.textSecondary} />}
+          renderItem={({ item }) => (
+            <NotificacaoGrupo grupo={item} onPress={abrirNotificacao} />
+          )}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.textSecondary}
+            />
+          }
           contentContainerStyle={{ paddingBottom: 32 }}
           showsVerticalScrollIndicator={false}
         />
       )}
 
-      <Modal visible={modalConfiguracoes} transparent animationType="fade">
-        <View style={styles.modalFundo}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitulo}>Configurações</Text>
-            <View style={styles.switchContainer}>
-              <Text style={styles.switchLabel}>Receber notificações de desafios</Text>
-              <Switch
-                trackColor={{ false: colors.border, true: colors.primary }}
-                thumbColor={configuracoes?.desafios ? colors.primary : colors.textSecondary}
-                ios_backgroundColor={colors.cardBackgroundAlt}
-                value={configuracoes?.desafios ?? false}
-                onValueChange={(value) =>
-                  setConfiguracoes((prev) => ({ ...prev, desafios: value }))
-                }
-              />
-            </View>
-            <Button title="Salvar" onPress={() => setModalConfiguracoes(false)} darkMode />
-          </View>
-        </View>
-      </Modal>
     </View>
   );
 };
@@ -203,9 +208,6 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 3 },
   },
-  lida: {
-    opacity: 0.6,
-  },
   iconWrapper: {
     width: 46,
     height: 46,
@@ -219,30 +221,6 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textPrimary,
   },
-
-  modalFundo: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(18,18,18,0.9)',
-  },
-  modalContainer: {
-    backgroundColor: colors.cardBackgroundAlt,
-    borderRadius: 20,
-    padding: 30,
-    width: width - 64,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.75,
-    shadowRadius: 10,
-    elevation: 12,
-  },
-  modalTitulo: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textPrimary,
-    marginBottom: 24,
-    textAlign: 'center',
-  },
   switchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -254,3 +232,5 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
 });
+
+export default Notificacao;
