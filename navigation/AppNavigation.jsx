@@ -1,3 +1,5 @@
+// msantt/frontappfitness/FrontAppFitness-Login-e-Cadastro/navigation/AppNavigation.jsx
+
 import React from "react";
 import { NavigationContainer } from "@react-navigation/native";
 import {
@@ -16,6 +18,7 @@ import DesafiosScreen from "../pages/MeusDesafios";
 import { CriarDesafios } from "../pages/CriarDesafio";
 import { DetalhesDesafios } from "../pages/DetalhesDesafios";
 import CheckInFlow from "../pages/CheckInFlow";
+import { HomeScreen } from "../pages/HomeScreen";
 
 const Stack = createStackNavigator();
 
@@ -27,12 +30,12 @@ export default function AppNavegation() {
         screenOptions={{
           headerShown: false,
           cardStyleInterpolator:
-            CardStyleInterpolators.forFadeFromBottomAndroid, // Fade suave
+            CardStyleInterpolators.forFadeFromBottomAndroid,
           transitionSpec: {
             open: {
               animation: "timing",
               config: {
-                duration: 300, // Mais rápido
+                duration: 300,
                 useNativeDriver: true,
               },
             },
@@ -47,8 +50,8 @@ export default function AppNavegation() {
           cardStyle: { backgroundColor: "transparent" },
         }}
       >
-        <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="PrimeScreen" component={PrimeScreen} />
+        <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="SignUpScreen1" component={SignUpScreen1} />
         <Stack.Screen name="SignUpScreen2" component={SignUpScreen2} />
         <Stack.Screen name="SignUpScreen3" component={SignUpScreen3} />
@@ -57,6 +60,7 @@ export default function AppNavegation() {
         <Stack.Screen name="CriarDesafios" component={CriarDesafios} />
         <Stack.Screen name="DetalhesDesafios" component={DetalhesDesafios} />
         <Stack.Screen name="CheckInFlow" component={CheckInFlow} />
+        <Stack.Screen name="Home" component={HomeScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
