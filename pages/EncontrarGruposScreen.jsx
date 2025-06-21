@@ -259,7 +259,7 @@ export function EncontrarGruposScreen() {
         </View>
       </Modal>
 
-      <BottomNav active="Grupos" />
+      <BottomNav active="EncontrarGruposScreen" />
     </View>
   );
 }
