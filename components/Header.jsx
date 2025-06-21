@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   StatusBar,
+  Platform,
 } from 'react-native';
 import { NotificationBell } from '../components/NotificationBell';
 
@@ -16,6 +17,7 @@ export const Header = ({
   onBackPress,
   onSharePress,
   rightComponent,
+  hasNotification = false,
 }) => {
   return (
     <View style={styles.container}>
@@ -23,26 +25,31 @@ export const Header = ({
       
       <View style={styles.header}>
         {showBackButton && (
-          <TouchableOpacity style={styles.backButton} onPress={onBackPress}>
-            <Text style={styles.backIcon}>←</Text>
+          <TouchableOpacity style={styles.iconButton} onPress={onBackPress}>
+            <Text style={styles.icon}>←</Text>
           </TouchableOpacity>
         )}
-        
+
         <View style={styles.titleContainer}>
           <Text style={styles.title}>{title}</Text>
           {subtitle && <Text style={styles.subtitle}>{subtitle}</Text>}
         </View>
 
-        <View style={styles.rightComponent}>
-          <NotificationBell hasNotification={true} />
-          {rightComponent}
-        </View>
+        <View style={styles.actionsContainer}>
+          <NotificationBell hasNotification={hasNotification} />
 
-        {showShareButton && (
-          <TouchableOpacity style={styles.shareButton} onPress={onSharePress}>
-            <Text style={styles.shareIcon}>⤴</Text>
-          </TouchableOpacity>
-        )}
+          {showShareButton && (
+            <TouchableOpacity style={styles.iconButton} onPress={onSharePress}>
+              <Text style={styles.icon}>⤴</Text>
+            </TouchableOpacity>
+          )}
+
+          {rightComponent && (
+            <View style={styles.rightComponent}>
+              {rightComponent}
+            </View>
+          )}
+        </View>
       </View>
     </View>
   );
@@ -51,23 +58,23 @@ export const Header = ({
 const styles = StyleSheet.create({
   container: {
     backgroundColor: '#2A2A2A',
+    paddingTop: Platform.OS === 'android' ? StatusBar.currentHeight : 0,
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 16,
-    paddingTop: 25,
+    paddingVertical: 12,
   },
-  backButton: {
+  iconButton: {
     width: 40,
     height: 40,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backIcon: {
+  icon: {
     color: '#FFF',
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   titleContainer: {
@@ -84,19 +91,12 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginTop: 2,
   },
-  shareButton: {
-    width: 40,
-    height: 40,
-    justifyContent: 'center',
+  actionsContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
-  },
-  shareIcon: {
-    color: '#FFF',
-    fontSize: 20,
+    gap: 8, // se der erro, substitua por marginLeft dentro dos elementos
   },
   rightComponent: {
     marginLeft: 8,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
 });

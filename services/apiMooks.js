@@ -663,6 +663,69 @@ const MOCK_CHECKINS = [
 
 ];
 
+const MOCK_GRUPOS = [
+  {
+    id: 'grp1',
+    nome: 'Maratona Run Dev',
+    imagem: 'https://images.unsplash.com/photo-1552674605-db6ffd4c1d68?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8cnVubmluZyUyMGdyb3VwfGVufDB8fDB8fHww',
+    descricao: 'Grupo para desenvolvedores que amam correr e se exercitar. Foco em maratonas e saúde mental.',
+    membros: 21,
+    limiteMembros: 50,
+    categoria: 'Corrida',
+    tipo: 'publico',
+    codigoAcesso: null,
+    administrador: 'Manuel Silva',
+  },
+  {
+    id: 'grp2',
+    nome: 'Intensivão CrossFR',
+    imagem: 'https://images.unsplash.com/photo-1594918712771-550304a0808a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Nnx8Y3Jvc3NmaXQlMjBncm91cHxlbnwwfHwwfHx8MA%3D%3D',
+    descricao: 'Treinos intensivos de Cross Functional para todos os níveis. Venha superar seus limites!',
+    membros: 25,
+    limiteMembros: 80,
+    categoria: 'Musculação',
+    tipo: 'privado',
+    codigoAcesso: 'CROSSFR123',
+    administrador: 'Ana Carolina',
+  },
+  {
+    id: 'grp3',
+    nome: 'Galera do Bike',
+    imagem: 'https://images.unsplash.com/photo-1572118671850-25e21c3227ed?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTR8fGJpa2luZwlMjBncm91cHxlbnwwfHwwfHx8MA%3D%3D',
+    descricao: 'Aquele pedal de fim de semana para explorar novas trilhas e se divertir com a galera.',
+    membros: 16,
+    limiteMembros: 50,
+    categoria: 'Ciclismo',
+    tipo: 'publico',
+    codigoAcesso: null,
+    administrador: 'Pedro Souza',
+  },
+  {
+    id: 'grp4',
+    nome: 'Yoga Zen',
+    imagem: 'https://plus.unsplash.com/photos/bM1Q9p3n4d8?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTJ8fHlvZ2ElMjBncm91cHxlbnwwfHwwfHx8MA%3D%3D',
+    descricao: 'Para quem busca equilíbrio e bem-estar através do yoga. Aulas diárias ao pôr do sol.',
+    membros: 10,
+    limiteMembros: 30,
+    categoria: 'Yoga',
+    tipo: 'privado',
+    codigoAcesso: 'YOGA2025',
+    administrador: 'Sofia Mendes',
+  },
+  {
+    id: 'grp5',
+    nome: 'Caminhada Saudável',
+    imagem: 'https://plus.unsplash.com/photos/P8N9z2Q_Y0w?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTV8fHdhbGtpbmclMjBncm91cHxlbnwwfHwwfHx8MA%3D%3D',
+    descricao: 'Um grupo para caminhadas matinais e noturnas, explorando a cidade e a natureza.',
+    membros: 40,
+    limiteMembros: 100,
+    categoria: 'Caminhada',
+    tipo: 'publico',
+    codigoAcesso: null,
+    administrador: 'Mariana Lima',
+  },
+];
+
 
 // Adicionando funções mockadas
 
@@ -687,6 +750,84 @@ export const apiService = {
     } else {
       throw new Error('Email ou senha inválidos');
     }
+  },
+
+  async listarGruposDoUsuario(userId) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        const userGroups = MOCK_GRUPOS.filter(group => group.administrador === 'Manuel Silva');
+        resolve(userGroups);
+      }, 500);
+    });
+  },
+
+   getGrupos: async (filtro = {}) => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        let gruposFiltrados = MOCK_GRUPOS;
+        if (filtro.termo) {
+          const termoLower = filtro.termo.toLowerCase();
+          gruposFiltrados = gruposFiltrados.filter(
+            (grupo) =>
+              grupo.nome.toLowerCase().includes(termoLower) ||
+              grupo.categoria.toLowerCase().includes(termoLower)
+          );
+        }
+        if (filtro.tipo && filtro.tipo !== 'todos') {
+          gruposFiltrados = gruposFiltrados.filter(
+            (grupo) => grupo.tipo === filtro.tipo
+          );
+        }
+        resolve(gruposFiltrados);
+      }, 500);
+    });
+  },
+
+  criarGrupo: async (novoGrupo) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const nomeExiste = MOCK_GRUPOS.some(grupo => grupo.nome === novoGrupo.nome);
+        if (nomeExiste) {
+          reject({ success: false, message: 'Nome do grupo já existe.' });
+          return;
+        }
+
+        const id = `grp${MOCK_GRUPOS.length + 1}`;
+        const codigoAcesso = novoGrupo.tipo === 'privado' && !novoGrupo.codigoAcesso
+          ? Math.random().toString(36).substring(2, 8).toUpperCase()
+          : novoGrupo.codigoAcesso;
+
+        const grupoCompleto = {
+          id,
+          ...novoGrupo,
+          membros: 1,
+          limiteMembros: novoGrupo.limiteMembros || 50,
+          codigoAcesso: novoGrupo.tipo === 'privado' ? codigoAcesso : null,
+          administrador: 'Manuel Silva',
+        };
+        MOCK_GRUPOS.push(grupoCompleto);
+        resolve({ success: true, grupo: grupoCompleto });
+      }, 1000);
+    });
+  },
+
+  entrarGrupo: async (grupoId, codigo) => {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        const grupo = MOCK_GRUPOS.find(g => g.id === grupoId);
+        if (!grupo) {
+          return reject({ success: false, message: 'Grupo não encontrado.' });
+        }
+        if (grupo.tipo === 'privado' && grupo.codigoAcesso !== codigo) {
+          return reject({ success: false, message: 'Código de acesso incorreto.' });
+        }
+        if (grupo.membros >= grupo.limiteMembros) {
+          return reject({ success: false, message: 'Grupo lotado.' });
+        }
+        grupo.membros += 1;
+        resolve({ success: true, message: 'Você entrou no grupo!', grupo });
+      }, 500);
+    });
   },
 
   // 🔥 Listar todos os desafios

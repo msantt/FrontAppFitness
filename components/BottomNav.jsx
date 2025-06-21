@@ -8,8 +8,8 @@ export const BottomNav = ({ active }) => {
 
   const navItems = [
     { name: 'Home', icon: <Feather name="home" size={20} color="#FFF" />, route: 'Home' },
-    { name: 'Grupos', icon: <Ionicons name="people-outline" size={20} color="#FFF" />, route: 'Grupos' },
-    { name: 'Checkin', icon: <Feather name="check-circle" size={20} color="#FFF" />, route: 'Checkin' },
+    { name: 'Grupos', icon: <Ionicons name="people-outline" size={20} color="#FFF" />, route: 'EncontrarGruposScreen' },
+    { name: 'Checkin', icon: <Feather name="check-circle" size={20} color="#FFF" />, route: 'CheckInFlow' },
     { name: 'Desafios', icon: <MaterialIcons name="emoji-events" size={20} color="#FFF" />, route: 'DesafiosScreen' },
     { name: 'Perfil', icon: <FontAwesome5 name="user" size={20} color="#FFF" />, route: 'Perfil' },
   ];

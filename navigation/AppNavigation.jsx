@@ -5,7 +5,6 @@ import {
   CardStyleInterpolators,
 } from "@react-navigation/stack";
 
-// Importe suas telas
 import { PrimeScreen } from "../pages/PrimeScreen";
 import { LoginScreen } from "../pages/LoginScreen";
 import { SignUpScreen1 } from "../pages/SignUpScreen1";
@@ -19,7 +18,11 @@ import { ParticiparDesafioScreen } from "../pages/DetalhesParticiparDesafio";
 import { Perfil } from '../pages/Perfil';
 import { Ranking } from "../pages/Ranking";
 import { Notificacao } from  "../pages/Notificacao"
-
+import CheckInFlow from "../pages/CheckInFlow";
+import { HomeScreen } from "../pages/HomeScreen";
+import { EncontrarGruposScreen } from "../pages/EncontrarGruposScreen";
+import { CriarGrupoScreen } from "../pages/CriarGrupoScreen";
+import { ConfirmacaoCriacaoGrupoScreen } from "../pages/ConfirmacaoCriacaoGrupoScreen";
 
 const Stack = createStackNavigator();
 
@@ -31,12 +34,12 @@ export default function AppNavegation() {
         screenOptions={{
           headerShown: false,
           cardStyleInterpolator:
-            CardStyleInterpolators.forFadeFromBottomAndroid, // Fade suave
+            CardStyleInterpolators.forFadeFromBottomAndroid,
           transitionSpec: {
             open: {
               animation: "timing",
               config: {
-                duration: 300, // Mais rápido
+                duration: 300,
                 useNativeDriver: true,
               },
             },
@@ -51,8 +54,8 @@ export default function AppNavegation() {
           cardStyle: { backgroundColor: "transparent" },
         }}
       >
-        <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="PrimeScreen" component={PrimeScreen} />
+        <Stack.Screen name="LoginScreen" component={LoginScreen} />
         <Stack.Screen name="SignUpScreen1" component={SignUpScreen1} />
         <Stack.Screen name="SignUpScreen2" component={SignUpScreen2} />
         <Stack.Screen name="SignUpScreen3" component={SignUpScreen3} />
@@ -64,6 +67,11 @@ export default function AppNavegation() {
         <Stack.Screen name="Perfil" component={Perfil} />
         <Stack.Screen name="Ranking" component={Ranking} />
         <Stack.Screen name="Notificacao" component={Notificacao} />
+        <Stack.Screen name="CheckInFlow" component={CheckInFlow} />
+        <Stack.Screen name="Home" component={HomeScreen} />
+        <Stack.Screen name="EncontrarGruposScreen" component={EncontrarGruposScreen} />
+        <Stack.Screen name="CriarGrupoScreen" component={CriarGrupoScreen} />
+        <Stack.Screen name="ConfirmacaoCriacaoGrupoScreen" component={ConfirmacaoCriacaoGrupoScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );
