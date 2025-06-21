@@ -1,20 +1,13 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import AppNavigation from './navigation/AppNavigation';
+import { PrimeScreen } from './pages/PrimeScreen';
+import { LoginScreen } from './pages/LoginScreen';
+import { SignUpScreen1 } from './pages/SignUpScreen1';
+import { SignUpScreen2 } from './pages/SignUpScreen2';
+import { SignUpScreen3 } from './pages/SignUpScreen3';
 
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text>Open up App.js to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+  <AppNavigation/>
+  )
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
