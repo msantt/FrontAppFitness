@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,11 +7,14 @@ import {
   StyleSheet,
   Dimensions,
 } from 'react-native';
+import { apiService } from '../services/api';
 
 const { width } = Dimensions.get('window');
 const cardWidth = (width - 48) / 2;
 
 export const DesafioCard = ({ desafio, onPress }) => {
+  const [membrosAtivos, setMembrosAtivos] = useState(0);
+
   const calcularDiasRestantes = (dataFim) => {
     const hoje = new Date();
     const fim = new Date(dataFim);
@@ -21,7 +24,7 @@ export const DesafioCard = ({ desafio, onPress }) => {
   };
 
   const getStatusColor = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'ativo':
         return '#1DB954';
       case 'patrocinado':
@@ -34,7 +37,7 @@ export const DesafioCard = ({ desafio, onPress }) => {
   };
 
   const getStatusText = (status) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case 'ativo': {
         const dias = calcularDiasRestantes(desafio.dataFim);
         return dias > 0 ? `Acaba em ${dias} dia(s)` : 'Desafio encerrado';
@@ -50,9 +53,24 @@ export const DesafioCard = ({ desafio, onPress }) => {
     }
   };
 
+  const carregarMembros = async () => {
+    try {
+      const membros = await apiService.getMembrosByDesafio(desafio.id);
+      const ativos = membros.filter((m) => m.status === 'ATIVO');
+      setMembrosAtivos(ativos.length);
+    } catch (error) {
+      console.error('Erro ao carregar membros:', error);
+      setMembrosAtivos(0);
+    }
+  };
+
+  useEffect(() => {
+    carregarMembros();
+  }, [desafio.id]);
+
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
-      <Image source={{ uri: desafio.imagem }} style={styles.cardImage} />
+      <Image source={{ uri: desafio.urlFoto }} style={styles.cardImage} />
       <View style={styles.cardOverlay}>
         <View
           style={[
@@ -64,15 +82,12 @@ export const DesafioCard = ({ desafio, onPress }) => {
         </View>
 
         <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{desafio.nome}</Text>
-          <Text style={styles.participantesText}>
-            {desafio.participantes} Participantes
+          <Text style={styles.cardTitle} numberOfLines={2}>
+            {desafio.nome}
           </Text>
-          {desafio.posicaoUsuario && (
-            <Text style={styles.posicaoText}>
-              Você está em {desafio.posicaoUsuario}º lugar
-            </Text>
-          )}
+          <Text style={styles.participantesText}>
+            {membrosAtivos} membros ativos
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -86,6 +101,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     overflow: 'hidden',
     marginBottom: 16,
+    backgroundColor: '#333',
   },
   cardImage: {
     width: '100%',
@@ -122,10 +138,5 @@ const styles = StyleSheet.create({
   participantesText: {
     color: '#CCC',
     fontSize: 12,
-  },
-  posicaoText: {
-    color: '#1DB954',
-    fontSize: 11,
-    marginTop: 2,
   },
 });

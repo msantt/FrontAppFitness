@@ -1,5 +1,13 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, Share, Dimensions } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Share,
+  Dimensions,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { AntDesign, Feather } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
@@ -7,39 +15,35 @@ import * as Clipboard from 'expo-clipboard';
 import { Header } from '../components/Header';
 import { BottomNav } from '../components/BottomNav';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 export function ConfirmacaoCriacaoGrupoScreen({ route }) {
   const navigation = useNavigation();
   const { grupo } = route.params;
 
   const handleCopyCode = async () => {
-    await Clipboard.setStringAsync(grupo.codigoAcesso);
-    Alert.alert('Copiado!', 'Código do grupo copiado para a área de transferência.');
+    if (grupo.codigoAcesso) {
+      await Clipboard.setStringAsync(grupo.codigoAcesso);
+      Alert.alert('Copiado!', 'Código do grupo copiado para a área de transferência.');
+    }
   };
 
   const handleShareGroup = async () => {
     try {
-      const result = await Share.share({
-        message:
-          `Participe do meu novo grupo "${grupo.nome}" no app de desafios! ` +
-          (grupo.tipo === 'privado'
-            ? `Use o código: ${grupo.codigoAcesso}. `
-            : '') +
-          `Acesse o app e encontre o grupo pela categoria "${grupo.categoria}".`,
-      });
+      const mensagem =
+        `🚀 Participe do meu grupo "${grupo.nome}" no app de desafios!\n` +
+        (grupo.tipoGrupo === 'PRIVADO'
+          ? `🔒 Código de acesso: ${grupo.codigoAcesso}\n`
+          : '') +
+        `Baixe o app e encontre o grupo!`;
+
+      const result = await Share.share({ message: mensagem });
 
       if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          // shared with activity type of result.activityType
-        } else {
-          // shared
-        }
-      } else if (result.action === Share.dismissedAction) {
-        // dismissed
+        // Compartilhado com sucesso
       }
     } catch (error) {
-      Alert.alert('Erro ao Compartilhar', error.message);
+      Alert.alert('Erro ao compartilhar', error.message);
     }
   };
 
@@ -55,26 +59,28 @@ export function ConfirmacaoCriacaoGrupoScreen({ route }) {
         <AntDesign name="checkcircleo" size={width * 0.2} color="#00D95F" />
         <Text style={styles.title}>Grupo criado com sucesso!</Text>
         <Text style={styles.subtitle}>
-          Compartilhe com seus amigos para participarem do grupo!
+          Compartilhe com seus amigos para participarem do grupo.
         </Text>
-
         <View style={styles.detailsCard}>
           <Text style={styles.detailLabel}>Código do Grupo:</Text>
-          <Text style={styles.detailValueCode}>{grupo.codigoAcesso || 'N/A'}</Text>
+          <Text style={styles.detailValueCode}>
+            {grupo.codigoAcesso || 'N/A'}
+          </Text>
           <Text style={styles.detailLabel}>Nome do Grupo:</Text>
           <Text style={styles.detailValue}>{grupo.nome}</Text>
           <Text style={styles.detailLabel}>Administrador:</Text>
-          <Text style={styles.detailValue}>{grupo.administrador || 'Você'}</Text>
+          <Text style={styles.detailValue}>
+            {grupo.criador?.nome || 'Você'}
+          </Text>
+
           <Text style={styles.detailLabel}>Tipo:</Text>
           <Text style={styles.detailValue}>
-            {grupo.tipo === 'publico' ? 'Público' : 'Privado'}
+            {grupo.tipoGrupo === 'PUBLICO' ? 'Público' : 'Privado'}
           </Text>
-          <Text style={styles.detailLabel}>Categoria:</Text>
-          <Text style={styles.detailValue}>{grupo.categoria}</Text>
         </View>
 
         <View style={styles.buttonContainer}>
-          {grupo.codigoAcesso && (
+          {grupo.tipoGrupo === 'PRIVADO' && grupo.codigoAcesso && (
             <TouchableOpacity style={styles.actionButton} onPress={handleCopyCode}>
               <Feather name="copy" size={width * 0.05} color="#000" />
               <Text style={styles.actionButtonText}>Copiar código</Text>

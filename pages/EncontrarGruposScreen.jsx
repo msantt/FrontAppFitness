@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,37 +10,87 @@ import {
   Alert,
   Modal,
   Dimensions,
-} from 'react-native';
-import { Feather, AntDesign, MaterialIcons } from '@expo/vector-icons';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
+} from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Feather, AntDesign, MaterialIcons } from "@expo/vector-icons";
+import { useNavigation, useIsFocused } from "@react-navigation/native";
 
-import { Header } from '../components/Header';
-import { BottomNav } from '../components/BottomNav';
-import { apiService } from '../services/apiMooks';
+import { Header } from "../components/Header";
+import { BottomNav } from "../components/BottomNav";
+import { apiService } from "../services/api";
+import { ModalConfirmacao } from "../components/ModalConfirm";
+import { ModalFeedback } from "../components/ModalFeedback";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 
 export function EncontrarGruposScreen() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
 
+  const [usuario, setUsuario] = useState(null);
   const [grupos, setGrupos] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('todos');
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterType, setFilterType] = useState("todos");
   const [isFilterModalVisible, setFilterModalVisible] = useState(false);
 
-  const [isPrivateModalVisible, setPrivateModalVisible] = useState(null); // Alterado para null quando não visível
+  const [confirmModalVisible, setConfirmModalVisible] = useState(false);
+  const [grupoSelecionadoConfirmacao, setGrupoSelecionadoConfirmacao] =
+    useState(null);
+
+  const [isPrivateModalVisible, setPrivateModalVisible] = useState(false);
   const [selectedPrivateGroup, setSelectedPrivateGroup] = useState(null);
-  const [privateGroupCode, setPrivateGroupCode] = useState('');
+  const [privateGroupCode, setPrivateGroupCode] = useState("");
+
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackType, setFeedbackType] = useState("success");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+
+  useEffect(() => {
+    const carregarEmailEUsuario = async () => {
+      try {
+        const emailSalvo = await AsyncStorage.getItem("userEmail");
+        if (emailSalvo) {
+          const usuarioData = await apiService.getUsuarioByEmail(emailSalvo);
+          setUsuario(usuarioData);
+        } else {
+          setFeedbackType("error");
+          setFeedbackMessage("Email não encontrado. Faça login novamente.");
+          setFeedbackVisible(true);
+          navigation.navigate("LoginScreen");
+        }
+      } catch (error) {
+        setFeedbackType("error");
+        setFeedbackMessage("Não foi possivel carregar os dados do usuario");
+        setFeedbackVisible(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarEmailEUsuario();
+  }, []);
 
   const loadGroups = async () => {
     setLoading(true);
     try {
-      const data = await apiService.getGrupos({ termo: searchTerm, tipo: filterType });
+      let data = await apiService.getGrupos();
+
+      if (searchTerm.trim()) {
+        const termo = searchTerm.toLowerCase();
+        data = data.filter(
+          (g) =>
+            g.nome.toLowerCase().includes(termo) ||
+            (g.criador && g.criador.nome.toLowerCase().includes(termo))
+        );
+      }
+      if (filterType !== "todos") {
+        data = data.filter((g) => g.tipoGrupo.toLowerCase() === filterType);
+      }
+
       setGrupos(data);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os grupos.');
+      Alert.alert("Erro", "Não foi possível carregar os grupos.");
       console.error(error);
     } finally {
       setLoading(false);
@@ -51,82 +101,139 @@ export function EncontrarGruposScreen() {
     if (isFocused) {
       loadGroups();
     }
-  }, [isFocused, searchTerm, filterType]);
+  }, [isFocused, filterType]);
 
   const handleGroupPress = (grupo) => {
-    if (grupo.tipo === 'publico') {
-      Alert.alert(
-        'Entrar no Grupo',
-        `Deseja realmente entrar no grupo "${grupo.nome}"?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Sim',
-            onPress: async () => {
-              try {
-                await apiService.entrarGrupo(grupo.id, null);
-                Alert.alert('Sucesso', `Você entrou no grupo "${grupo.nome}"!`);
-                loadGroups();
-              } catch (error) {
-                Alert.alert('Erro', error.message || 'Não foi possível entrar no grupo.');
-              }
-            },
-          },
-        ]
-      );
+    if (grupo.tipoGrupo.toLowerCase() === "publico") {
+      setGrupoSelecionadoConfirmacao(grupo);
+      setConfirmModalVisible(true);
     } else {
       setSelectedPrivateGroup(grupo);
+      setPrivateGroupCode("");
       setPrivateModalVisible(true);
-      setPrivateGroupCode('');
     }
+  };
+
+  const confirmarEntradaGrupo = async () => {
+    if (!grupoSelecionadoConfirmacao) return;
+
+    try {
+      if (!usuario?.id) throw new Error("Usuário não encontrado.");
+
+      await apiService.entrarGrupo(
+        grupoSelecionadoConfirmacao.id,
+        usuario.id,
+        null
+      );
+
+      setFeedbackType("success");
+      setFeedbackMessage(
+        `Você entrou no grupo "${grupoSelecionadoConfirmacao.nome}"!`
+      );
+      setFeedbackVisible(true);
+      loadGroups();
+    } catch (error) {
+      setFeedbackType("error");
+      setFeedbackMessage(error.message || "Não foi possível entrar no grupo.");
+      setFeedbackVisible(true);
+    } finally {
+      setConfirmModalVisible(false);
+      setGrupoSelecionadoConfirmacao(null);
+    }
+  };
+
+  const cancelarEntradaGrupo = () => {
+    setConfirmModalVisible(false);
+    setGrupoSelecionadoConfirmacao(null);
   };
 
   const handlePrivateGroupEntry = async () => {
     if (!selectedPrivateGroup || !privateGroupCode) {
-      Alert.alert('Aviso', 'Por favor, insira o código de acesso.');
+      Alert.alert("Aviso", "Por favor, insira o código de acesso.");
       return;
     }
     try {
-      await apiService.entrarGrupo(selectedPrivateGroup.id, privateGroupCode);
-      Alert.alert('Sucesso', `Você entrou no grupo "${selectedPrivateGroup.nome}"!`);
+      if (!usuario?.id) throw new Error("Usuário não encontrado.");
+
+      await apiService.entrarGrupo(
+        selectedPrivateGroup.id,
+        usuario.id,
+        privateGroupCode
+      );
+
+      setFeedbackType("success");
+      setFeedbackMessage(
+        `Você entrou no grupo "${selectedPrivateGroup.nome}"!`
+      );
+      setFeedbackVisible(true);
       setPrivateModalVisible(false);
       loadGroups();
     } catch (error) {
-      Alert.alert('Erro', error.message || 'Não foi possível entrar no grupo privado.');
+      setFeedbackType("error");
+      setFeedbackMessage(
+        "Código inválido! Por favor, confira e tente novamente."
+      );
+      setFeedbackVisible(true);
     }
   };
 
-  const renderGroupCard = (grupo) => (
-    <TouchableOpacity
-      key={grupo.id}
-      style={styles.groupCard}
-      onPress={() => handleGroupPress(grupo)}
-    >
-      <Image source={{ uri: grupo.imagem }} style={styles.groupImage} />
-      <View style={styles.groupInfo}>
-        <View style={styles.groupHeader}>
-          <Text style={styles.groupName}>{grupo.nome}</Text>
-          {grupo.tipo === 'publico' ? (
-            <MaterialIcons name="public" size={width * 0.04} color="#00D95F" />
-          ) : (
-            <Feather name="lock" size={width * 0.04} color="#FFD700" />
+  const renderGroupCard = (grupo) => {
+    const nomeCriador = grupo.criador?.nome ?? "Desconhecido";
+
+    let membrosInfo = "";
+    if (typeof grupo.membros === "number") {
+      membrosInfo = grupo.membros;
+    } else if (Array.isArray(grupo.membros)) {
+      membrosInfo = grupo.membros.length;
+    } else if (grupo.membros && typeof grupo.membros === "object") {
+      membrosInfo = grupo.membros.count || JSON.stringify(grupo.membros);
+    } else {
+      membrosInfo = "0";
+    }
+
+    return (
+      <TouchableOpacity
+        key={grupo.id}
+        style={styles.groupCard}
+        onPress={() => handleGroupPress(grupo)}
+      >
+        <Image source={{ uri: grupo.urlFoto }} style={styles.groupImage} />
+        <View style={styles.groupInfo}>
+          <View style={styles.groupHeader}>
+            <Text style={styles.groupName}>{grupo.nome}</Text>
+            {grupo.tipoGrupo.toLowerCase() === "publico" ? (
+              <MaterialIcons
+                name="public"
+                size={width * 0.04}
+                color="#00D95F"
+              />
+            ) : (
+              <Feather name="lock" size={width * 0.04} color="#FFD700" />
+            )}
+          </View>
+          {grupo.descricao && (
+            <Text style={styles.groupDescription}>
+              {grupo.descricao.length > 50
+                ? grupo.descricao.substring(0, 50) + "..."
+                : grupo.descricao}
+            </Text>
           )}
+
+          <Text style={styles.groupMembers}>
+            {membrosInfo}{" "}
+            {membrosInfo === 1 ? "Membro Ativo" : "Membros Ativos"}
+          </Text>
+
+          <Text style={styles.groupCategory}>Criador: {nomeCriador}</Text>
         </View>
-        {grupo.tipo === 'publico' && (
-          <Text style={styles.groupDescription}>{grupo.descricao.substring(0, 50)}...</Text>
+        {grupo.tipoGrupo.toLowerCase() === "publico" && (
+          <View style={styles.enterButtonContainer}>
+            <AntDesign name="rightcircle" size={width * 0.06} color="#00D95F" />
+          </View>
         )}
-        <Text style={styles.groupMembers}>
-          Membros: {grupo.membros} / {grupo.limiteMembros}
-        </Text>
-        <Text style={styles.groupCategory}>Categoria: {grupo.categoria}</Text>
-      </View>
-      {grupo.tipo === 'publico' && (
-        <View style={styles.enterButtonContainer}>
-          <AntDesign name="rightcircle" size={width * 0.06} color="#00D95F" />
-        </View>
-      )}
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -141,21 +248,20 @@ export function EncontrarGruposScreen() {
             >
               <Feather name="filter" size={width * 0.06} color="#FFF" />
             </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => navigation.navigate('CriarGrupoScreen')}
-            >
-              <Feather name="plus" size={width * 0.08} color="#000" />
-            </TouchableOpacity>
           </View>
         }
       />
 
       <View style={styles.searchContainer}>
-        <Feather name="search" size={width * 0.05} color="#B3B3B3" style={styles.searchIcon} />
+        <Feather
+          name="search"
+          size={width * 0.05}
+          color="#B3B3B3"
+          style={styles.searchIcon}
+        />
         <TextInput
           style={styles.searchInput}
-          placeholder="Pesquisar grupos ou categorias"
+          placeholder="Pesquisar grupos ou criadores"
           placeholderTextColor="#B3B3B3"
           value={searchTerm}
           onChangeText={setSearchTerm}
@@ -175,80 +281,51 @@ export function EncontrarGruposScreen() {
         </ScrollView>
       )}
 
-      {/* Modal de Filtro */}
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={isFilterModalVisible}
-        onRequestClose={() => setFilterModalVisible(false)}
-      >
-        <View style={styles.centeredView}>
-          <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Filtrar por Tipo</Text>
-            <TouchableOpacity
-              style={[
-                styles.filterOption,
-                filterType === 'todos' && styles.filterOptionSelected,
-              ]}
-              onPress={() => { setFilterType('todos'); setFilterModalVisible(false); }}
-            >
-              <Text style={styles.filterOptionText}>Todos os Grupos</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterOption,
-                filterType === 'publico' && styles.filterOptionSelected,
-              ]}
-              onPress={() => { setFilterType('publico'); setFilterModalVisible(false); }}
-            >
-              <Text style={styles.filterOptionText}>Grupos Públicos</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.filterOption,
-                filterType === 'privado' && styles.filterOptionSelected,
-              ]}
-              onPress={() => { setFilterType('privado'); setFilterModalVisible(false); }}
-            >
-              <Text style={styles.filterOptionText}>Grupos Privados</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.closeModalButton}
-              onPress={() => setFilterModalVisible(false)}
-            >
-              <Text style={styles.closeModalButtonText}>Fechar</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      {/* Modal confirmação para grupo público */}
+      <ModalConfirmacao
+        visible={confirmModalVisible}
+        mensagem={`Deseja realmente entrar no grupo "${grupoSelecionadoConfirmacao?.nome}"?`}
+        onConfirm={confirmarEntradaGrupo}
+        onCancel={cancelarEntradaGrupo}
+      />
 
-      {/* Modal de Grupo Privado */}
+      {/* Modal feedback de sucesso/erro */}
+      <ModalFeedback
+        visible={feedbackVisible}
+        type={feedbackType}
+        message={feedbackMessage}
+        onClose={() => setFeedbackVisible(false)}
+      />
+
+      {/* Modal para grupo privado */}
       <Modal
-        animationType="fade"
-        transparent={true}
         visible={isPrivateModalVisible}
+        transparent
+        animationType="slide"
         onRequestClose={() => setPrivateModalVisible(false)}
       >
         <View style={styles.centeredView}>
           <View style={styles.modalView}>
-            <Text style={styles.modalTitle}>Entrar em Grupo Privado</Text>
+            <Text style={styles.modalTitle}>Entrar no Grupo Privado</Text>
             <Text style={styles.modalSubtitle}>
-              Insira o código de acesso para "{selectedPrivateGroup?.nome}":
+              Insira o código de acesso para entrar no grupo "
+              {selectedPrivateGroup?.nome}"
             </Text>
             <TextInput
               style={styles.codeInput}
-              placeholder="Código do grupo"
-              placeholderTextColor="#999"
+              placeholder="Código de Acesso"
+              placeholderTextColor="#B3B3B3"
               value={privateGroupCode}
               onChangeText={setPrivateGroupCode}
-              autoCapitalize="characters"
             />
+
             <TouchableOpacity
               style={styles.modalActionButton}
               onPress={handlePrivateGroupEntry}
             >
               <Text style={styles.modalActionButtonText}>Entrar</Text>
             </TouchableOpacity>
+
             <TouchableOpacity
               style={styles.closeModalButton}
               onPress={() => setPrivateModalVisible(false)}
@@ -259,6 +336,13 @@ export function EncontrarGruposScreen() {
         </View>
       </Modal>
 
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => navigation.navigate("CriarGrupoScreen")}
+      >
+        <Text style={styles.fabIcon}>+</Text>
+      </TouchableOpacity>
+
       <BottomNav active="EncontrarGruposScreen" />
     </View>
   );
@@ -267,30 +351,27 @@ export function EncontrarGruposScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E1E1E',
-  },
-  scrollView: {
-    flex: 1,
+    backgroundColor: "#1E1E1E",
   },
   scrollContent: {
     paddingHorizontal: width * 0.04,
     paddingBottom: 100,
   },
   loadingText: {
-    color: '#FFF',
-    textAlign: 'center',
+    color: "#FFF",
+    textAlign: "center",
     marginTop: 20,
     fontSize: width * 0.04,
   },
   noGroupsText: {
-    color: '#CCC',
-    textAlign: 'center',
+    color: "#CCC",
+    textAlign: "center",
     marginTop: 50,
     fontSize: width * 0.045,
   },
   headerRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   filterButton: {
     marginRight: width * 0.03,
@@ -300,14 +381,14 @@ const styles = StyleSheet.create({
     width: width * 0.12,
     height: width * 0.12,
     borderRadius: width * 0.06,
-    backgroundColor: '#00D95F',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "#00D95F",
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2A2A2A',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2A2A2A",
     borderRadius: 10,
     marginHorizontal: width * 0.04,
     marginBottom: 20,
@@ -319,18 +400,18 @@ const styles = StyleSheet.create({
   },
   searchInput: {
     flex: 1,
-    color: '#FFF',
+    color: "#FFF",
     fontSize: width * 0.04,
   },
   groupCard: {
-    flexDirection: 'row',
-    backgroundColor: '#2A2A2A',
+    flexDirection: "row",
+    backgroundColor: "#2A2A2A",
     borderRadius: 15,
     marginBottom: 15,
-    overflow: 'hidden',
-    alignItems: 'center',
+    overflow: "hidden",
+    alignItems: "center",
     padding: 10,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
@@ -346,27 +427,27 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   groupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 5,
   },
   groupName: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: width * 0.045,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginRight: 5,
   },
   groupDescription: {
-    color: '#B3B3B3',
+    color: "#B3B3B3",
     fontSize: width * 0.035,
     marginBottom: 5,
   },
   groupMembers: {
-    color: '#CCC',
+    color: "#CCC",
     fontSize: width * 0.035,
   },
   groupCategory: {
-    color: '#00D95F',
+    color: "#00D95F",
     fontSize: width * 0.03,
     marginTop: 2,
   },
@@ -375,17 +456,17 @@ const styles = StyleSheet.create({
   },
   centeredView: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalView: {
     margin: 20,
-    backgroundColor: '#2A2A2A',
+    backgroundColor: "#2A2A2A",
     borderRadius: 20,
     padding: 35,
-    alignItems: 'center',
-    shadowColor: '#000',
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 2,
@@ -393,45 +474,45 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 5,
-    width: '80%',
+    width: "80%",
   },
   modalTitle: {
     fontSize: width * 0.055,
-    fontWeight: 'bold',
-    color: '#00D95F',
+    fontWeight: "bold",
+    color: "#00D95F",
     marginBottom: 15,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalSubtitle: {
     fontSize: width * 0.04,
-    color: '#FFF',
+    color: "#FFF",
     marginBottom: 15,
-    textAlign: 'center',
+    textAlign: "center",
   },
   codeInput: {
     borderWidth: 1,
-    borderColor: '#00D95F',
+    borderColor: "#00D95F",
     borderRadius: 10,
     padding: 10,
     fontSize: width * 0.045,
-    color: '#FFF',
-    width: '100%',
-    textAlign: 'center',
+    color: "#FFF",
+    width: "100%",
+    textAlign: "center",
     marginBottom: 20,
   },
   modalActionButton: {
-    backgroundColor: '#00D95F',
+    backgroundColor: "#00D95F",
     borderRadius: 10,
     paddingVertical: 12,
     paddingHorizontal: 20,
     elevation: 2,
-    width: '100%',
+    width: "100%",
     marginBottom: 10,
   },
   modalActionButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
-    textAlign: 'center',
+    color: "#000",
+    fontWeight: "bold",
+    textAlign: "center",
     fontSize: width * 0.045,
   },
   closeModalButton: {
@@ -439,7 +520,44 @@ const styles = StyleSheet.create({
     padding: 10,
   },
   closeModalButtonText: {
-    color: '#CCC',
+    color: "#CCC",
     fontSize: width * 0.035,
+  },
+  filterOption: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    marginVertical: 5,
+    backgroundColor: "#333",
+    width: "100%",
+  },
+  filterOptionSelected: {
+    backgroundColor: "#00D95F",
+  },
+  filterOptionText: {
+    color: "#FFF",
+    fontSize: width * 0.04,
+    textAlign: "center",
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#00D95F",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  fabIcon: {
+    color: "#000",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 });

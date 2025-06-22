@@ -7,17 +7,19 @@ import {
   Alert,
   StyleSheet,
   TextInput,
+  Image,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
 import Button from "../components/ButtonDesafios";
-import { apiService } from "../services/apiMooks";
+import { apiService } from "../services/api";
 import { MaskedTextInput } from "react-native-mask-text";
 import CurrencyInput from "react-native-currency-input";
 import * as ImagePicker from "expo-image-picker";
 import { uploadImagemParaCloudinary } from "../services/cloudinaryService";
 import DropdownModal from "../components/Modal";
-import { Image } from "react-native";
 import { ModalConfirmacao } from "../components/ModalConfirm";
 import { ModalFeedback } from "../components/ModalFeedback";
 
@@ -32,9 +34,10 @@ export const CriarDesafios = ({ navigation }) => {
     dataFim: "",
     status: "ATIVO",
     isPublico: true,
-    categoriaId: "",
-    grupoId: "",
-    criadorId: "",
+    categoria: { id: "" },
+    grupos: { id: "" },
+    criador: { id: "" },
+    urlFoto: "",
   });
 
   const [loading, setLoading] = useState(false);
@@ -42,32 +45,78 @@ export const CriarDesafios = ({ navigation }) => {
   const [grupos, setGrupos] = useState([]);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [feedbackType, setFeedbackType] = useState("success"); // "success" ou "error"
+  const [feedbackType, setFeedbackType] = useState("success");
   const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [userId, setUserId] = useState(null);
 
-  const userId = "u1";
+  // Carregar usuário logado
+  const loadUsuario = async () => {
+    try {
+      const email = await AsyncStorage.getItem("userEmail");
+      if (!email)
+        throw new Error("Usuário não encontrado no armazenamento local");
+
+      const usuario = await apiService.getUsuarioByEmail(email);
+      if (!usuario?.id) throw new Error("Usuário inválido retornado pela API");
+
+      setUserId(usuario.id);
+      setFormData((prev) => ({
+        ...prev,
+        criador: { id: usuario.id },
+      }));
+    } catch (error) {
+      Alert.alert(
+        "Erro",
+        `Não foi possível carregar o usuário: ${error.message}`
+      );
+    }
+  };
 
   useEffect(() => {
-    console.log("Fetching categorias e grupos");
+    loadUsuario();
+  }, []);
+
+  // Carregar categorias e grupos quando o userId mudar
+  useEffect(() => {
     const fetchData = async () => {
       try {
         const categoriasResponse = await apiService.listarCategorias();
         setCategorias(categoriasResponse);
 
-        const gruposResponse = await apiService.listarGruposDoUsuario(userId);
-        setGrupos(gruposResponse);
+        if (userId) {
+          const gruposResponse = await apiService.listarGruposDoUsuario(userId);
+          setGrupos(gruposResponse);
+        }
       } catch (error) {
-        Alert.alert("Erro", "Erro ao carregar categorias ou grupos");
+        Alert.alert("Erro", "Erro ao carregar categorias ou grupos.");
       }
     };
     fetchData();
-  }, []);
+  }, [userId]);
 
+  // Atualizar formData, incluindo atualizando objetos para categoria, grupos e criador
   const updateFormData = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    if (field === "categoria") {
+      setFormData((prev) => ({
+        ...prev,
+        categoria: { id: value },
+      }));
+    } else if (field === "grupos") {
+      setFormData((prev) => ({
+        ...prev,
+        grupos: { id: value },
+      }));
+    } else if (field === "criador") {
+      setFormData((prev) => ({
+        ...prev,
+        criador: { id: value },
+      }));
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: value,
+      }));
+    }
   };
 
   const pickImage = async () => {
@@ -80,19 +129,14 @@ export const CriarDesafios = ({ navigation }) => {
       });
 
       if (!result.canceled) {
-        if (result.assets && result.assets.length > 0) {
-          const imageUri = result.assets[0].uri;
-          setLoading(true);
-          const url = await uploadImagemParaCloudinary(imageUri);
-          updateFormData("imagem", url);
-          setLoading(false);
-        } else {
-          Alert.alert("Erro", "Nenhuma imagem foi selecionada.");
-        }
+        const imageUri = result.assets[0].uri;
+        setLoading(true);
+        const url = await uploadImagemParaCloudinary(imageUri);
+        updateFormData("urlFoto", url);
+        setLoading(false);
       }
     } catch (error) {
       setLoading(false);
-      console.error("Erro ao selecionar ou enviar imagem:", error);
       Alert.alert("Erro", "Não foi possível enviar a imagem.");
     }
   };
@@ -105,17 +149,18 @@ export const CriarDesafios = ({ navigation }) => {
       { campo: "valorAposta", label: "Valor da aposta" },
       { campo: "dataInicio", label: "Data de início" },
       { campo: "dataFim", label: "Data de término" },
-      { campo: "categoriaId", label: "Categoria" },
-      { campo: "grupoId", label: "Grupo" },
+      { campo: "categoria", label: "Categoria" },
+      { campo: "grupos", label: "Grupo" },
     ];
 
     for (let item of obrigatorios) {
-      if (
-        formData[item.campo] === "" ||
-        formData[item.campo] === null ||
-        formData[item.campo]?.toString().trim() === ""
-      ) {
-        Alert.alert("Erro", `${item.label} é obrigatório`);
+      const valor = formData[item.campo];
+      // Para objetos categoria e grupos, verificar id
+      if (typeof valor === "object" && (!valor.id || valor.id.trim() === "")) {
+        Alert.alert("Erro", `${item.label} é obrigatório.`);
+        return false;
+      } else if (typeof valor === "string" && valor.trim() === "") {
+        Alert.alert("Erro", `${item.label} é obrigatório.`);
         return false;
       }
     }
@@ -125,8 +170,10 @@ export const CriarDesafios = ({ navigation }) => {
       return false;
     }
 
+    // As datas já estão no formato DD-MM-YYYY?
     const dataInicioISO = formatDateToISO(formData.dataInicio);
     const dataFimISO = formatDateToISO(formData.dataFim);
+
     if (new Date(dataInicioISO) < new Date()) {
       Alert.alert("Erro", "A data de início deve ser no futuro.");
       return false;
@@ -140,6 +187,8 @@ export const CriarDesafios = ({ navigation }) => {
   };
 
   const formatDateToISO = (dateStr) => {
+    // Espera DD-MM-YYYY
+    if (!dateStr) return "";
     const [day, month, year] = dateStr.split("-");
     return `${year}-${month}-${day}`;
   };
@@ -163,37 +212,40 @@ export const CriarDesafios = ({ navigation }) => {
     const body = {
       nome: formData.nome,
       descricao: formData.descricao,
-      categoria: { id: formData.categoriaId },
-      grupos: { id: formData.grupoId },
+      categoria: { id: formData.categoria.id },
+      grupos: { id: formData.grupos.id },
       dataInicio: `${formatDateToISO(formData.dataInicio)}T06:00:00`,
       dataFim: `${formatDateToISO(formData.dataFim)}T23:59:59`,
       status: formData.status,
       recompensa: formData.recompensa,
       isPublico: formData.isPublico,
-      valorAposta: parseFloat(formData.valorAposta).toFixed(2).toString(),
+      valorAposta: Number(parseFloat(formData.valorAposta).toFixed(2)),
       tipoDesafio: formData.tipoDesafio,
-      criador: { id: userId },
+      criador: { id: formData.criador.id },
       urlFoto:
-        formData.imagem ||
+        formData.urlFoto ||
         "https://totalpass.com/wp-content/uploads/2024/09/desafio-fitness-1.png",
     };
+
+    console.log("Dados para enviar:", body);
 
     setLoading(true);
     try {
       await apiService.criarDesafio(body);
       setFeedbackType("success");
       setFeedbackMessage(
-        `Desafio criado com sucesso! O valor da aposta de R$ ${parseFloat(
-          formData.valorAposta
-        ).toFixed(2)} foi debitado do seu saldo.`
+        `Desafio criado com sucesso! O valor da aposta de R$ ${body.valorAposta.toFixed(
+          2
+        )} foi debitado do seu saldo.`
       );
       setShowFeedback(true);
     } catch (error) {
+      console.error("Erro ao criar desafio:", error);
       setFeedbackType("error");
       setFeedbackMessage(
-        `Não foi possível criar o desafio. O valor da aposta de R$ ${parseFloat(
-          formData.valorAposta
-        ).toFixed(2)} foi estornado para o seu saldo.`
+        `Não foi possível criar o desafio. O valor da aposta de R$ ${body.valorAposta.toFixed(
+          2
+        )} foi estornado para o seu saldo.`
       );
       setShowFeedback(true);
     } finally {
@@ -253,9 +305,9 @@ export const CriarDesafios = ({ navigation }) => {
             style={styles.imageUploadContainer}
             onPress={pickImage}
           >
-            {formData.imagem ? (
+            {formData.urlFoto ? (
               <Image
-                source={{ uri: formData.imagem }}
+                source={{ uri: formData.urlFoto }}
                 style={styles.uploadedImage}
               />
             ) : (
@@ -270,26 +322,21 @@ export const CriarDesafios = ({ navigation }) => {
           "Nome",
           formData.nome,
           (text) => updateFormData("nome", text),
-          "Digite o nome do desafio",
-          "default",
-          50
+          "Digite o nome do desafio"
         )}
         {renderInput(
           "Descrição",
           formData.descricao,
           (text) => updateFormData("descricao", text),
-          "Digite a descrição",
-          "default",
-          200
+          "Digite a descrição"
         )}
         {renderInput(
           "Recompensa",
           formData.recompensa,
           (text) => updateFormData("recompensa", text),
-          "Ex.: Medalha + Pontos",
-          "default",
-          50
+          "Ex.: Medalha + Pontos"
         )}
+
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Valor da Aposta (R$)</Text>
           <CurrencyInput
@@ -305,6 +352,7 @@ export const CriarDesafios = ({ navigation }) => {
             keyboardType="numeric"
           />
         </View>
+
         {renderInput(
           "Data de Início",
           formData.dataInicio,
@@ -326,16 +374,16 @@ export const CriarDesafios = ({ navigation }) => {
 
         <DropdownModal
           label="Categoria"
-          value={formData.categoriaId}
+          value={formData.categoria.id}
           options={categorias}
-          onSelect={(value) => updateFormData("categoriaId", value)}
+          onSelect={(value) => updateFormData("categoria", value)}
         />
 
         <DropdownModal
           label="Grupo"
-          value={formData.grupoId}
+          value={formData.grupos.id}
           options={grupos}
-          onSelect={(value) => updateFormData("grupoId", value)}
+          onSelect={(value) => updateFormData("grupos", value)}
         />
 
         <View style={styles.switchContainer}>
@@ -389,6 +437,7 @@ export const CriarDesafios = ({ navigation }) => {
       <View style={styles.bottomNav}>
         <BottomNav active={"DesafiosScreen"} />
       </View>
+
       <ModalConfirmacao
         visible={showConfirmModal}
         mensagem={`Você deseja criar o desafio e debitar o valor da aposta de R$ ${parseFloat(
@@ -397,6 +446,7 @@ export const CriarDesafios = ({ navigation }) => {
         onConfirm={handleConfirm}
         onCancel={handleCancel}
       />
+
       <ModalFeedback
         visible={showFeedback}
         type={feedbackType}

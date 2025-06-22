@@ -6,12 +6,12 @@ import {
   StyleSheet,
   TouchableOpacity,
   RefreshControl,
-  Alert,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { Header } from '../components/Header';
 import { DesafioCard } from '../components/DesafioCard';
-import { apiService } from '../services/apiMooks';
+import { apiService } from '../services/api';
 import { BottomNav } from '../components/BottomNav';
 
 export const DesafiosScreen = ({ navigation }) => {
@@ -20,12 +20,39 @@ export const DesafiosScreen = ({ navigation }) => {
   const [explorarDesafios, setExplorarDesafios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [userId, setUserId] = useState(null);
+  const [errorMsg, setErrorMsg] = useState(null);
 
-  const userId = 'u1';
+  const loadUsuario = async () => {
+    try {
+      const email = await AsyncStorage.getItem('userEmail');
+      console.log("Email do usuário no AsyncStorage:", email);
+
+      if (!email) throw new Error('Usuário não encontrado no armazenamento local');
+
+      const usuario = await apiService.getUsuarioByEmail(email);
+      console.log("Usuário retornado da API:", usuario);
+
+      if (!usuario || !usuario.id) throw new Error('Usuário inválido retornado pela API');
+
+      setUserId(usuario.id);
+      setErrorMsg(null);
+    } catch (error) {
+      setErrorMsg(`Erro ao carregar usuário: ${error.message}`);
+      setUserId(null);
+      setLoading(false);
+    }
+  };
 
   const loadAllDesafios = async () => {
+    if (!userId) {
+      console.log("UserId ainda não definido, não carrega desafios");
+      return;
+    }
+
     try {
       setLoading(true);
+      setErrorMsg(null);
 
       const [meus, praVoce, explorar] = await Promise.all([
         apiService.getMeusDesafios(userId),
@@ -33,11 +60,19 @@ export const DesafiosScreen = ({ navigation }) => {
         apiService.getDesafios(),
       ]);
 
-      setMeusDesafios(meus);
-      setDesafiosPraVoce(praVoce);
-      setExplorarDesafios(explorar);
+      console.log("Meus desafios:", meus);
+      console.log("Desafios pra você:", praVoce);
+      console.log("Explorar desafios:", explorar);
+
+      setMeusDesafios(meus ?? []);
+      setDesafiosPraVoce(praVoce ?? []);
+      setExplorarDesafios(explorar ?? []);
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível carregar os desafios');
+      console.error("Erro ao carregar desafios:", error);
+      setErrorMsg('Erro ao carregar desafios. Tente novamente mais tarde.');
+      setMeusDesafios([]);
+      setDesafiosPraVoce([]);
+      setExplorarDesafios([]);
     } finally {
       setLoading(false);
     }
@@ -50,22 +85,29 @@ export const DesafiosScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    loadAllDesafios();
+    loadUsuario();
   }, []);
+
+  useEffect(() => {
+    loadAllDesafios();
+  }, [userId]);
 
   const verificarMembroDoDesafio = async (usuarioId, desafioId) => {
     try {
       const membros = await apiService.getMembrosPorUsuario(usuarioId);
       const isMembro = membros.some((membro) => membro.desafio.id === desafioId);
-      console.log(`Usuário ${usuarioId} é membro do desafio ${desafioId}: ${isMembro}`);
       return isMembro;
     } catch (error) {
-      Alert.alert('Erro', 'Não foi possível verificar participação no desafio.');
+      console.error("Erro ao verificar membro do desafio:", error);
       return false;
     }
   };
 
   const handleDesafioPress = async (desafio) => {
+    if (!userId) {
+      setErrorMsg('Usuário não carregado ainda.');
+      return;
+    }
     const isMembro = await verificarMembroDoDesafio(userId, desafio.id);
 
     if (isMembro) {
@@ -82,30 +124,45 @@ export const DesafiosScreen = ({ navigation }) => {
     navigation.navigate('CriarDesafios');
   };
 
-  const renderDesafiosSection = (title, desafiosList) => {
-    if (desafiosList.length === 0) return null;
+  // Ajuste para acessar o objeto correto nos meusDesafios
+  const renderDesafiosSection = (title, desafiosList, isMeusDesafios = false) => {
+    if (desafiosList.length === 0) {
+      // Se não tem desafios, não renderiza nada (pode retornar null)
+      return null;
+    }
 
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>{title}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-          {desafiosList.map((desafio, index) => (
-            <View
-              key={desafio.id}
-              style={{
-                marginRight: index === desafiosList.length - 1 ? 0 : 16,
-              }}
-            >
-              <DesafioCard
-                desafio={desafio}
-                onPress={() => handleDesafioPress(desafio)}
-              />
-            </View>
-          ))}
+          {desafiosList.map((item, index) => {
+            const desafio = isMeusDesafios ? item.desafio : item;
+            const key = isMeusDesafios ? item.desafioId || desafio.id : desafio.id;
+
+            return (
+              <View
+                key={key}
+                style={{ marginRight: index === desafiosList.length - 1 ? 0 : 16 }}
+              >
+                <DesafioCard desafio={desafio} onPress={() => handleDesafioPress(desafio)} />
+              </View>
+            );
+          })}
         </ScrollView>
       </View>
     );
   };
+
+  if (loading && !userId) {
+    return (
+      <View style={styles.container}>
+        <Header title="Desafios" />
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Carregando usuário...</Text>
+        </View>
+      </View>
+    );
+  }
 
   if (loading) {
     return (
@@ -125,16 +182,20 @@ export const DesafiosScreen = ({ navigation }) => {
         subtitle="Clique em um desafio para conhecer mais"
       />
 
+      {errorMsg && (
+        <View style={styles.errorContainer}>
+          <Text style={styles.errorText}>{errorMsg}</Text>
+        </View>
+      )}
+
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {renderDesafiosSection('Meus Desafios', meusDesafios)}
-        {renderDesafiosSection('Pra Você', desafiosPraVoce)}
-        {renderDesafiosSection('Explorar', explorarDesafios)}
+        {meusDesafios.length > 0 && renderDesafiosSection('Meus Desafios', meusDesafios, true)}
+        {desafiosPraVoce.length > 0 && renderDesafiosSection('Pra Você', desafiosPraVoce)}
+        {explorarDesafios.length > 0 && renderDesafiosSection('Explorar', explorarDesafios)}
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={handleCreateDesafio}>
@@ -178,6 +239,24 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 12,
+  },
+  noDesafiosText: {
+    color: '#BBB',
+    fontSize: 16,
+    fontStyle: 'italic',
+    paddingHorizontal: 8,
+  },
+  errorContainer: {
+    backgroundColor: '#800000AA',
+    marginHorizontal: 16,
+    padding: 12,
+    borderRadius: 6,
+    marginBottom: 8,
+  },
+  errorText: {
+    color: '#FFF',
+    fontSize: 16,
+    textAlign: 'center',
   },
   fab: {
     position: 'absolute',

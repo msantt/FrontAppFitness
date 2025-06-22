@@ -11,31 +11,72 @@ import {
   ActivityIndicator,
   Dimensions,
 } from "react-native";
-import { Feather, AntDesign } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
 import * as ImagePicker from "expo-image-picker";
-// REMOVIDA: import { MediaType } from 'expo-image-picker'; // Não é mais necessária, pois usamos ImagePicker.MediaTypeOptions
 import { useNavigation } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
-import { apiService } from "../services/apiMooks";
+import { apiService } from "../services/api";
 import { uploadImagemParaCloudinary } from "../services/cloudinaryService";
+import { ModalConfirmacao } from "../components/ModalConfirm";
+import { ModalFeedback } from "../components/ModalFeedback";
 
-const { width, height } = Dimensions.get("window");
+const { width } = Dimensions.get("window");
 
 export function CriarGrupoScreen() {
   const navigation = useNavigation();
 
   const [groupName, setGroupName] = useState("");
   const [groupDescription, setGroupDescription] = useState("");
-  const [groupType, setGroupType] = useState("publico");
+  const [groupType, setGroupType] = useState("PUBLICO");
   const [customCode, setCustomCode] = useState("");
   const [groupImage, setGroupImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState("");
 
+  const [usuario, setUsuario] = useState(null);
+
+  // Controle dos modais
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [feedback, setFeedback] = useState({
+    visible: false,
+    type: "success",
+    message: "",
+  });
+
+  // Carregar usuário logado
+  useEffect(() => {
+    const carregarUsuario = async () => {
+      try {
+        const email = await AsyncStorage.getItem("userEmail");
+        if (email) {
+          const userData = await apiService.getUsuarioByEmail(email);
+          setUsuario(userData);
+        } else {
+          setFeedback({
+            visible: true,
+            type: "error",
+            message: "Não foi possível obter o usuário. Faça login novamente.",
+          });
+          navigation.navigate("LoginScreen");
+        }
+      } catch (error) {
+        setFeedback({
+          visible: true,
+          type: "error",
+          message: "Falha ao obter os dados do usuário.",
+        });
+        console.error(error);
+      }
+    };
+    carregarUsuario();
+  }, []);
+
+  // Carregar categorias e permissão de imagem
   useEffect(() => {
     (async () => {
       const { status } =
@@ -55,8 +96,11 @@ export function CriarGrupoScreen() {
           setSelectedCategory(cats[0].id);
         }
       } catch (error) {
-        Alert.alert("Erro", "Não foi possível carregar as categorias.");
-        console.error(error);
+        setFeedback({
+          visible: true,
+          type: "error",
+          message: "Não foi possível carregar as categorias.",
+        });
       }
     };
     loadCategories();
@@ -72,65 +116,87 @@ export function CriarGrupoScreen() {
       });
 
       if (!result.canceled) {
-        if (result.assets && result.assets.length > 0) {
-          const imageUri = result.assets[0].uri;
-          setLoading(true);
-          const url = await uploadImagemParaCloudinary(imageUri);
-          setGroupImage(url); // 🔥 Agora você tem a URL da imagem na nuvem
-          setLoading(false);
-        } else {
-          Alert.alert("Erro", "Nenhuma imagem foi selecionada.");
-        }
+        const imageUri = result.assets[0].uri;
+        setLoading(true);
+        const url = await uploadImagemParaCloudinary(imageUri);
+        setGroupImage(url);
+        setLoading(false);
       }
     } catch (error) {
       setLoading(false);
-      console.error("Erro ao selecionar ou enviar imagem:", error);
-      Alert.alert("Erro", "Não foi possível enviar a imagem.");
+      setFeedback({
+        visible: true,
+        type: "error",
+        message: "Não foi possível selecionar ou enviar a imagem.",
+      });
     }
   };
 
-  const handleCreateGroup = async () => {
-    if (!groupName.trim() || !groupDescription.trim() || !selectedCategory) {
-      Alert.alert(
-        "Campos obrigatórios",
-        "Por favor, preencha nome, descrição e categoria."
-      );
+  const handleOpenConfirmModal = () => {
+    if (!groupName.trim() || !groupDescription.trim()) {
+      setFeedback({
+        visible: true,
+        type: "error",
+        message: "Por favor, preencha nome e descrição.",
+      });
       return;
     }
-    if (groupType === "privado" && !customCode.trim()) {
-      Alert.alert(
-        "Código Obrigatório",
-        "Grupos privados exigem um código de acesso."
-      );
+    setShowConfirmModal(true);
+  };
+
+  const handleCreateGroup = async () => {
+    setShowConfirmModal(false);
+
+    if (!usuario?.id) {
+      setFeedback({
+        visible: true,
+        type: "error",
+        message: "Usuário não identificado.",
+      });
       return;
     }
 
     setLoading(true);
-    try {
-      const newGroupData = {
-        nome: groupName.trim(),
-        descricao: groupDescription.trim(),
-        imagem:
-          groupImage ||
-          "https://via.placeholder.com/150/00FF88/FFFFFF?text=Grupo",
-        categoria:
-          categories.find((cat) => cat.id === selectedCategory)?.nome ||
-          "Outros",
-        tipo: groupType,
-        codigoAcesso: groupType === "privado" ? customCode.trim() : null,
-      };
 
-      const result = await apiService.criarGrupo(newGroupData);
+    const payload = {
+      nome: groupName.trim(),
+      descricao: groupDescription.trim(),
+      urlFoto:
+        groupImage ||
+        "https://media.istockphoto.com/id/1337511327/pt/foto/shot-of-a-group-of-sporty-young-people-doing-pushups-and-renegade-rows-together-in-a-gym.jpg",
+      tipoGrupo: groupType,
+      criador: { id: usuario.id },
+    };
+
+    try {
+      const result = await apiService.criarGrupo(payload);
+
       if (result.success) {
-        Alert.alert("Sucesso", "Grupo criado com sucesso!");
-        navigation.replace("ConfirmacaoCriacaoGrupoScreen", {
-          grupo: result.grupo,
+        setFeedback({
+          visible: true,
+          type: "success",
+          message: "Grupo criado com sucesso!",
         });
+
+        setTimeout(() => {
+          setFeedback({ visible: false, type: "", message: "" });
+          navigation.replace("ConfirmacaoCriacaoGrupoScreen", {
+            grupo: result.data,
+          });
+        }, 1500);
       } else {
-        Alert.alert("Erro", result.message || "Erro ao criar grupo.");
+        setFeedback({
+          visible: true,
+          type: "error",
+          message: result.error || "Erro ao criar grupo.",
+        });
       }
     } catch (error) {
-      Alert.alert("Erro", error.message || "Ocorreu um erro ao criar o grupo.");
+      setFeedback({
+        visible: true,
+        type: "error",
+        message: error.message || "Erro ao criar grupo.",
+      });
       console.error(error);
     } finally {
       setLoading(false);
@@ -157,7 +223,7 @@ export function CriarGrupoScreen() {
           ) : (
             <View style={styles.imagePlaceholder}>
               <Feather name="upload" size={width * 0.1} color="#B3B3B3" />
-              <Text style={styles.imageUploadText}>Update de Foto</Text>
+              <Text style={styles.imageUploadText}>Upload de Foto</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -188,7 +254,7 @@ export function CriarGrupoScreen() {
           />
         </View>
 
-        {/* Tipo de Grupo (Público/Privado) */}
+        {/* Tipo de Grupo */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Tipo de Grupo</Text>
           <View style={styles.pickerContainer}>
@@ -204,8 +270,8 @@ export function CriarGrupoScreen() {
           </View>
         </View>
 
-        {/* Código Personalizado (se Privado) */}
-        {groupType === "privado" && (
+        {/* Código Personalizado */}
+        {groupType === "PRIVADO" && (
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Código Personalizado (Opcional)</Text>
             <TextInput
@@ -219,24 +285,7 @@ export function CriarGrupoScreen() {
           </View>
         )}
 
-        {/* Categoria do Grupo */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Categoria</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={selectedCategory}
-              onValueChange={(itemValue) => setSelectedCategory(itemValue)}
-              style={styles.picker}
-              itemStyle={styles.pickerItem}
-            >
-              {categories.map((cat) => (
-                <Picker.Item key={cat.id} label={cat.nome} value={cat.id} />
-              ))}
-            </Picker>
-          </View>
-        </View>
-
-        {/* Mensagem Informativa */}
+        {/* Informação */}
         <Text style={styles.infoText}>
           Obs: Cada grupo possui um código de acesso gerado automaticamente para
           facilitar a localização.
@@ -245,7 +294,7 @@ export function CriarGrupoScreen() {
         {/* Botão Criar Grupo */}
         <TouchableOpacity
           style={styles.createButton}
-          onPress={handleCreateGroup}
+          onPress={handleOpenConfirmModal}
           disabled={loading}
         >
           {loading ? (
@@ -257,6 +306,23 @@ export function CriarGrupoScreen() {
       </ScrollView>
 
       <BottomNav active="Grupos" />
+
+      {/* Modais */}
+      <ModalConfirmacao
+        visible={showConfirmModal}
+        mensagem="Deseja realmente criar este grupo?"
+        onCancel={() => setShowConfirmModal(false)}
+        onConfirm={handleCreateGroup}
+      />
+
+      <ModalFeedback
+        visible={feedback.visible}
+        type={feedback.type}
+        message={feedback.message}
+        onClose={() =>
+          setFeedback({ visible: false, type: "", message: "" })
+        }
+      />
     </View>
   );
 }
