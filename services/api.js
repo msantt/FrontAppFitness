@@ -3,31 +3,31 @@ const API_URL = "http://ec2-52-22-160-200.compute-1.amazonaws.com:8080";
 export const apiService = {
   // 🔐 Login
   login: async (email, senha) => {
-  try {
-    const response = await fetch(`${API_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, senha }),
-    });
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, senha }),
+      });
 
-    const token = await response.text();
+      const token = await response.text();
 
-    if (!response.ok) {
-      throw new Error(token || 'Erro ao fazer login');
+      if (!response.ok) {
+        throw new Error(token || "Erro ao fazer login");
+      }
+
+      if (!token.startsWith("ey")) {
+        throw new Error("Token inválido ou não recebido");
+      }
+
+      console.log("Login realizado com sucesso:", token);
+      return { token };
+    } catch (error) {
+      console.error("Falha no login:", error.message);
+      throw error;
     }
+  },
 
-    if (!token.startsWith('ey')) {
-      throw new Error('Token inválido ou não recebido');
-    }
-
-    console.log('Login realizado com sucesso:', token);
-    return { token };
-
-  } catch (error) {
-    console.error('Falha no login:', error.message);
-    throw error;
-  }
-},
   listarNotificacoesPorUsuario: async (uuid) => {
     try {
       const response = await fetch(`${API_URL}/usuarios/${uuid}/notificacoes`);
@@ -46,7 +46,7 @@ export const apiService = {
   getUsuarioByEmail: async (email) => {
     try {
       const response = await fetch(
-        `${API_URL}/usuario/email/${encodeURIComponent(email)}`
+        `${API_URL}/usuarios/email/${encodeURIComponent(email)}`
       );
       if (!response.ok) throw new Error("Erro ao buscar usuário");
       return await response.json();
@@ -214,6 +214,7 @@ export const apiService = {
       throw error;
     }
   },
+
   getCheckInsByUsuarioId: async (usuarioId) => {
     try {
       const response = await fetch(`${API_URL}/check-in/usuario/${usuarioId}`);
@@ -295,60 +296,85 @@ export const apiService = {
     }
   },
 
-  getUsuario: async () => {
-    const email = "joao.oliveira@email.com";
-    const response = await fetch(
-      `${API_BASE_URL}/email/${encodeURIComponent(email)}`
-    );
-    if (!response.ok) {
-      throw new Error("Erro ao buscar usuário");
+  atualizarUsuario: async (dadosOriginais, dadosEditados) => {
+    console.log(dadosEditados)
+    if (!dadosOriginais?.id)
+      throw new Error("ID do usuário obrigatório para atualizar");
+
+    const dadosParaAtualizar = {
+      id: dadosOriginais.id,
+      nome: dadosEditados.nome ?? dadosOriginais.nome,
+      email: dadosEditados.email ?? dadosOriginais.email,
+      dataNascimento:
+        dadosEditados.dataNascimento ?? dadosOriginais.dataNascimento,
+      chavePix: dadosEditados.chavePix ?? dadosOriginais.chavePix,
+      objetivo: dadosEditados.objetivo ?? dadosOriginais.objetivo,
+      urlFoto: dadosEditados.urlFoto ?? dadosOriginais.urlFoto,
+      saldo: dadosEditados.saldo ?? dadosOriginais.saldo,
+      status: dadosEditados.status ?? dadosOriginais.status,
+    };
+
+    console.log("Enviando dados atualizados:", dadosParaAtualizar);
+
+    try {
+      const response = await fetch(`${API_URL}/usuarios/${dadosOriginais.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(dadosParaAtualizar),
+      });
+
+      if (!response.ok) {
+        let errorMessage = "Erro ao atualizar usuário";
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch {
+          const textError = await response.text();
+          if (textError) errorMessage = textError;
+        }
+        throw new Error(errorMessage);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error("Erro em atualizarUsuario:", error);
+      throw new Error(error.message || "Erro inesperado ao atualizar usuário");
     }
-    return await response.json();
-  },
-
-  atualizarUsuario: async (dados) => {
-    if (!dados.id) throw new Error("ID do usuário obrigatório para atualizar");
-
-    const response = await fetch(`${API_BASE_URL}/${dados.id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(dados),
-    });
-
-    if (!response.ok) {
-      throw new Error("Erro ao atualizar usuário");
-    }
-
-    return await response.json();
   },
 
   depositar: async (idUsuario, valor) => {
-    const response = await fetch(
-      `${API_BASE_URL}/${idUsuario}/depositar?valor=${valor}`,
-      {
-        method: "POST",
-      }
-    );
+    const url = `${API_URL}/usuarios/${idUsuario}/depositar?valor=${valor}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+    });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.log("Erro no deposito:", errorText);
       throw new Error("Erro ao realizar depósito");
     }
 
-    return await response.json();
+    const text = await response.text();
+    const saldoAtualizado = parseFloat(text);
+    return saldoAtualizado;
   },
 
   sacar: async (idUsuario, valor) => {
-    const response = await fetch(
-      `${API_BASE_URL}/${idUsuario}/sacar?valor=${valor}`,
-      {
-        method: "POST",
-      }
-    );
+    const url = `${API_URL}/usuarios/${idUsuario}/sacar?valor=${valor}`;
+
+    const response = await fetch(url, {
+      method: "POST",
+    });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.log("Erro no saque:", errorText);
       throw new Error("Erro ao realizar saque");
     }
 
-    return await response.json();
+    const text = await response.text();
+    const saldoAtualizado = parseFloat(text);
+    return saldoAtualizado;
   },
 };

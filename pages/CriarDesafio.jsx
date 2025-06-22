@@ -9,11 +9,17 @@ import {
   TextInput,
 } from "react-native";
 import { Header } from "../components/Header";
-import  {BottomNav} from "../components/BottomNav";
+import { BottomNav } from "../components/BottomNav";
 import Button from "../components/ButtonDesafios";
 import { apiService } from "../services/apiMooks";
 import { MaskedTextInput } from "react-native-mask-text";
 import CurrencyInput from "react-native-currency-input";
+import * as ImagePicker from "expo-image-picker";
+import { uploadImagemParaCloudinary } from "../services/cloudinaryService";
+import DropdownModal from "../components/Modal";
+import { Image } from "react-native";
+import { ModalConfirmacao } from "../components/ModalConfirm";
+import { ModalFeedback } from "../components/ModalFeedback";
 
 export const CriarDesafios = ({ navigation }) => {
   const [formData, setFormData] = useState({
@@ -34,6 +40,10 @@ export const CriarDesafios = ({ navigation }) => {
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState([]);
   const [grupos, setGrupos] = useState([]);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackType, setFeedbackType] = useState("success"); // "success" ou "error"
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   const userId = "u1";
 
@@ -60,30 +70,32 @@ export const CriarDesafios = ({ navigation }) => {
     }));
   };
 
-  const renderDropdown = (label, value, options, onSelect) => (
-    <View style={styles.inputContainer}>
-      <Text style={styles.label}>{label}</Text>
-      <TouchableOpacity
-        style={styles.dropdown}
-        onPress={() => {
-          Alert.alert(
-            label,
-            "Selecione uma opção:",
-            options.map((option) => ({
-              text: option.nome,
-              onPress: () => onSelect(option.id),
-            }))
-          );
-        }}
-      >
-        <Text style={[styles.dropdownText, !value && styles.placeholder]}>
-          {options.find((o) => o.id === value)?.nome ||
-            `Selecione ${label.toLowerCase()}`}
-        </Text>
-        <Text style={styles.dropdownIcon}>▼</Text>
-      </TouchableOpacity>
-    </View>
-  );
+  const pickImage = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.7,
+      });
+
+      if (!result.canceled) {
+        if (result.assets && result.assets.length > 0) {
+          const imageUri = result.assets[0].uri;
+          setLoading(true);
+          const url = await uploadImagemParaCloudinary(imageUri);
+          updateFormData("imagem", url);
+          setLoading(false);
+        } else {
+          Alert.alert("Erro", "Nenhuma imagem foi selecionada.");
+        }
+      }
+    } catch (error) {
+      setLoading(false);
+      console.error("Erro ao selecionar ou enviar imagem:", error);
+      Alert.alert("Erro", "Não foi possível enviar a imagem.");
+    }
+  };
 
   const validarFormulario = () => {
     const obrigatorios = [
@@ -112,7 +124,7 @@ export const CriarDesafios = ({ navigation }) => {
       Alert.alert("Erro", "O valor da aposta deve ser maior que zero.");
       return false;
     }
-    
+
     const dataInicioISO = formatDateToISO(formData.dataInicio);
     const dataFimISO = formatDateToISO(formData.dataFim);
     if (new Date(dataInicioISO) < new Date()) {
@@ -133,22 +145,16 @@ export const CriarDesafios = ({ navigation }) => {
   };
 
   const confirmarCriacao = () => {
-    Alert.alert(
-      "Confirmação",
-      `Você deseja criar o desafio e debitar o valor da aposta de R$ ${parseFloat(
-        formData.valorAposta
-      ).toFixed(2)} do seu saldo?`,
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Confirmar",
-          onPress: criarDesafio,
-        },
-      ]
-    );
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirm = () => {
+    setShowConfirmModal(false);
+    criarDesafio();
+  };
+
+  const handleCancel = () => {
+    setShowConfirmModal(false);
   };
 
   const criarDesafio = async () => {
@@ -167,30 +173,29 @@ export const CriarDesafios = ({ navigation }) => {
       valorAposta: parseFloat(formData.valorAposta).toFixed(2).toString(),
       tipoDesafio: formData.tipoDesafio,
       criador: { id: userId },
+      urlFoto:
+        formData.imagem ||
+        "https://totalpass.com/wp-content/uploads/2024/09/desafio-fitness-1.png",
     };
 
     setLoading(true);
     try {
       await apiService.criarDesafio(body);
-      Alert.alert(
-        "Sucesso!",
+      setFeedbackType("success");
+      setFeedbackMessage(
         `Desafio criado com sucesso! O valor da aposta de R$ ${parseFloat(
           formData.valorAposta
-        ).toFixed(2)} foi debitado do seu saldo.`,
-        [
-          {
-            text: "OK",
-            onPress: () => navigation.goBack(),
-          },
-        ]
+        ).toFixed(2)} foi debitado do seu saldo.`
       );
+      setShowFeedback(true);
     } catch (error) {
-      Alert.alert(
-        "Erro",
+      setFeedbackType("error");
+      setFeedbackMessage(
         `Não foi possível criar o desafio. O valor da aposta de R$ ${parseFloat(
           formData.valorAposta
-        ).toFixed(2)} foi extornado para o seu saldo.`
+        ).toFixed(2)} foi estornado para o seu saldo.`
       );
+      setShowFeedback(true);
     } finally {
       setLoading(false);
     }
@@ -242,6 +247,25 @@ export const CriarDesafios = ({ navigation }) => {
       />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Imagem do Desafio</Text>
+          <TouchableOpacity
+            style={styles.imageUploadContainer}
+            onPress={pickImage}
+          >
+            {formData.imagem ? (
+              <Image
+                source={{ uri: formData.imagem }}
+                style={styles.uploadedImage}
+              />
+            ) : (
+              <View style={styles.imagePlaceholder}>
+                <Text style={styles.imageUploadText}>Selecionar Imagem</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
         {renderInput(
           "Nome",
           formData.nome,
@@ -300,15 +324,19 @@ export const CriarDesafios = ({ navigation }) => {
           "99-99-9999"
         )}
 
-        {renderDropdown(
-          "Categoria",
-          formData.categoriaId,
-          categorias,
-          (value) => updateFormData("categoriaId", value)
-        )}
-        {renderDropdown("Grupo", formData.grupoId, grupos, (value) =>
-          updateFormData("grupoId", value)
-        )}
+        <DropdownModal
+          label="Categoria"
+          value={formData.categoriaId}
+          options={categorias}
+          onSelect={(value) => updateFormData("categoriaId", value)}
+        />
+
+        <DropdownModal
+          label="Grupo"
+          value={formData.grupoId}
+          options={grupos}
+          onSelect={(value) => updateFormData("grupoId", value)}
+        />
 
         <View style={styles.switchContainer}>
           <Text style={styles.label}>Visibilidade do Desafio:</Text>
@@ -358,11 +386,28 @@ export const CriarDesafios = ({ navigation }) => {
         </View>
       </ScrollView>
 
-      
       <View style={styles.bottomNav}>
         <BottomNav active={"DesafiosScreen"} />
       </View>
-
+      <ModalConfirmacao
+        visible={showConfirmModal}
+        mensagem={`Você deseja criar o desafio e debitar o valor da aposta de R$ ${parseFloat(
+          formData.valorAposta
+        ).toFixed(2)} do seu saldo?`}
+        onConfirm={handleConfirm}
+        onCancel={handleCancel}
+      />
+      <ModalFeedback
+        visible={showFeedback}
+        type={feedbackType}
+        message={feedbackMessage}
+        onClose={() => {
+          setShowFeedback(false);
+          if (feedbackType === "success") {
+            navigation.goBack();
+          }
+        }}
+      />
     </View>
   );
 };
@@ -396,25 +441,30 @@ const styles = StyleSheet.create({
     backgroundColor: "#1E1E1E",
   },
   dropdown: {
-    height: 45,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    height: 50,
     borderColor: "#444",
     borderWidth: 1,
-    borderRadius: 5,
-    justifyContent: "center",
-    paddingHorizontal: 10,
+    borderRadius: 8,
+    paddingHorizontal: 15,
     backgroundColor: "#1E1E1E",
-    position: "relative",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
   },
   dropdownText: {
-    fontSize: 16,
+    fontSize: 17,
     color: "#EEE",
+    flexShrink: 1,
   },
   dropdownIcon: {
-    position: "absolute",
-    right: 10,
-    top: 10,
-    fontSize: 16,
+    fontSize: 18,
     color: "#888",
+    marginLeft: 10,
   },
   placeholder: {
     color: "#888",
@@ -464,5 +514,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 20,
     paddingBottom: 20,
+  },
+  imageUploadContainer: {
+    width: "100%",
+    height: 200,
+    backgroundColor: "#1E1E1E",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#444",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+
+  uploadedImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+  },
+
+  imagePlaceholder: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  imageUploadText: {
+    color: "#888",
+    fontSize: 16,
   },
 });

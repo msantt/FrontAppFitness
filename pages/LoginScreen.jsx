@@ -13,8 +13,7 @@ import Button from "../components/Button";
 import SocialButton from "../components/SocialButton";
 import BackgroundDefault from "../components/BackgroundDefault";
 import TextLink from "../components/Links";
-import { apiService } from '../services/apiMooks';
-
+import { apiService } from '../services/api';
 
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -38,11 +37,6 @@ export function LoginScreen({ navigation }) {
     });
   }, []);
 
-  const usuariosFake = [
-    { email: "teste1@email.com", senha: "TesteSenha123@" },
-    { email: "teste2@email.com", senha: "TesteSenha321@" },
-  ];
-
   const handleLogin = async () => {
   try {
     const resultado = await apiService.login(email, senha);
@@ -64,7 +58,7 @@ export function LoginScreen({ navigation }) {
       await AsyncStorage.removeItem('loginSenhaLembrada');
     }
 
-    navigation.navigate('DesafiosScreen');
+    navigation.navigate('Home');
   } catch (error) {
     console.error('Falha no login:', error);
     alert('Usuário não foi encontrado.');

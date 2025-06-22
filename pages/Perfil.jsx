@@ -6,16 +6,35 @@ import {
   StyleSheet,
   Image,
   TextInput,
-  Alert,
-  Modal,
   Dimensions,
+  Modal,
 } from "react-native";
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
 import Button from "../components/ButtonDesafios";
-import { apiService } from "../services/apiMooks";
+import { apiService } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ModalFeedback } from "../components/ModalFeedback";
+import { MaterialIcons } from "@expo/vector-icons";
+import DropdownModal from "../components/Modal";
 
 const { width } = Dimensions.get("window");
+
+const objetivosOptions = [
+  { id: "EMAGRECIMENTO", nome: "Emagrecimento" },
+  { id: "GANHO_DE_MASSA_MUSCULAR", nome: "Ganho de massa muscular" },
+  { id: "MELHORA_DO_CONDICIONAMENTO", nome: "Melhora do condicionamento" },
+  { id: "SAUDE_MENTAL_E_BEM_ESTAR", nome: "Saúde mental e bem-estar" },
+  { id: "ESTILO_DE_VIDA_SAUDAVEL", nome: "Estilo de vida saudável" },
+  { id: "CRIAR_HABITO", nome: "Criar hábito" },
+  { id: "AUMENTO_DE_DISPOSICAO", nome: "Aumento de disposição" },
+  { id: "PREPARACAO_PARA_COMPETICAO", nome: "Preparação para competição" },
+  { id: "REDUCAO_DO_ESTRESSE", nome: "Redução do estresse" },
+  { id: "DESEMPENHO_ESPORTIVO", nome: "Desempenho esportivo" },
+  { id: "MANUTENCAO_DO_CORPO", nome: "Manutenção do corpo" },
+  { id: "REEDUCACAO_ALIMENTAR_E_TREINO", nome: "Reeducação alimentar e treino" },
+];
+
 
 const formatCurrency = (value) => {
   const cleanValue = value.replace(/\D/g, "");
@@ -41,57 +60,96 @@ export const Perfil = ({ navigation }) => {
   const [valorTransacao, setValorTransacao] = useState("");
   const [processandoTransacao, setProcessandoTransacao] = useState(false);
 
-  const loadDados = async () => {
-    try {
-      const usuarioData = await apiService.getUsuario();
-      setUsuario(usuarioData);
-      setDadosEditados(usuarioData);
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar os dados do perfil");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [feedbackVisible, setFeedbackVisible] = useState(false);
+  const [feedbackType, setFeedbackType] = useState("success");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
-    loadDados();
+    const carregarEmailEUsuario = async () => {
+      try {
+        const emailSalvo = await AsyncStorage.getItem("userEmail");
+        if (emailSalvo) {
+          setEmail(emailSalvo);
+          const usuarioData = await apiService.getUsuarioByEmail(emailSalvo);
+          setUsuario(usuarioData);
+          setDadosEditados(usuarioData);
+        } else {
+          setFeedbackType("error");
+          setFeedbackMessage("Email não encontrado. Faça login novamente.");
+          setFeedbackVisible(true);
+          navigation.navigate("LoginScreen");
+        }
+      } catch (error) {
+        setFeedbackType("error");
+        setFeedbackMessage("Não foi possível carregar os dados do perfil");
+        setFeedbackVisible(true);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    carregarEmailEUsuario();
   }, []);
 
   const handleSalvarEdicao = async () => {
-    try {
-      setLoading(true);
-      const usuarioAtualizado = await apiService.atualizarUsuario(
-        dadosEditados
-      );
-      setUsuario(usuarioAtualizado);
-      setEditando(false);
-      Alert.alert("Sucesso", "Perfil atualizado com sucesso!");
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível atualizar o perfil");
-    } finally {
-      setLoading(false);
+  try {
+    setLoading(true);
+    const usuarioAtualizado = await apiService.atualizarUsuario(usuario, dadosEditados);
+    setUsuario(usuarioAtualizado);
+    setEditando(false);
+
+    // Atualizar email no AsyncStorage caso tenha mudado
+    if (dadosEditados.email && dadosEditados.email !== email) {
+      await AsyncStorage.setItem("userEmail", dadosEditados.email);
+      setEmail(dadosEditados.email);
     }
+
+    setFeedbackType("success");
+    setFeedbackMessage("Perfil atualizado com sucesso!");
+    setFeedbackVisible(true);
+  } catch (error) {
+    setFeedbackType("error");
+    setFeedbackMessage("Não foi possível atualizar o perfil");
+    setFeedbackVisible(true);
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+  const mostrarFeedback = (tipo, mensagem) => {
+    setFeedbackType(tipo);
+    setFeedbackMessage(mensagem);
+    setFeedbackVisible(true);
   };
 
   const handleDepositar = async () => {
     const valor = parseFloat((parseInt(valorTransacao) / 100).toFixed(2));
     if (!valor || valor <= 0) {
-      Alert.alert("Erro", "Digite um valor válido");
+      mostrarFeedback("error", "Digite um valor válido");
+      return;
+    }
+
+    if (!usuario?.id) {
+      mostrarFeedback("error", "Usuário não identificado");
       return;
     }
 
     setProcessandoTransacao(true);
     try {
-      await apiService.depositar(valor);
-      await loadDados();
+      await apiService.depositar(usuario.id, valor);
+      const usuarioAtualizado = await apiService.getUsuarioByEmail(email);
+      setUsuario(usuarioAtualizado);
       setModalDeposito(false);
       setValorTransacao("");
-      Alert.alert(
-        "Sucesso",
+      mostrarFeedback(
+        "success",
         `Depósito de R$ ${valor.toFixed(2)} realizado com sucesso!`
       );
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível realizar o depósito");
+      mostrarFeedback("error", "Não foi possível realizar o depósito");
     } finally {
       setProcessandoTransacao(false);
     }
@@ -100,27 +158,36 @@ export const Perfil = ({ navigation }) => {
   const handleSacar = async () => {
     const valor = parseFloat((parseInt(valorTransacao) / 100).toFixed(2));
     if (!valor || valor <= 0) {
-      Alert.alert("Erro", "Digite um valor válido");
+      mostrarFeedback("error", "Digite um valor válido");
+      return;
+    }
+
+    if (!usuario?.id) {
+      mostrarFeedback("error", "Usuário não identificado");
       return;
     }
 
     if (valor > (usuario?.saldo || 0)) {
-      Alert.alert("Erro", "Saldo insuficiente");
+      mostrarFeedback("error", "Saldo insuficiente");
       return;
     }
 
     setProcessandoTransacao(true);
     try {
-      await apiService.sacar(valor);
-      await loadDados();
+      await apiService.sacar(usuario.id, valor);
+      const usuarioAtualizado = await apiService.getUsuarioByEmail(email);
+      setUsuario(usuarioAtualizado);
       setModalSaque(false);
       setValorTransacao("");
-      Alert.alert(
-        "Sucesso",
+      mostrarFeedback(
+        "success",
         `Saque de R$ ${valor.toFixed(2)} realizado com sucesso!`
       );
     } catch (error) {
-      Alert.alert("Erro", error.message || "Não foi possível realizar o saque");
+      mostrarFeedback(
+        "error",
+        error.message || "Não foi possível realizar o saque"
+      );
     } finally {
       setProcessandoTransacao(false);
     }
@@ -215,15 +282,20 @@ export const Perfil = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.avatarSection}>
-          <Image source={{ uri: usuario.urlFoto }} style={styles.avatar} />
+          <Image
+            source={
+              usuario.urlFoto
+                ? { uri: usuario.urlFoto }
+                : require("../assets/imagens/avatar.png")
+            }
+            style={styles.avatar}
+          />
           <Text style={styles.username}>{usuario.nome}</Text>
         </View>
 
         <View style={styles.saldoSection}>
           <Text style={styles.saldoLabel}>Saldo Atual</Text>
-          <Text style={styles.saldoValor}>
-            R$ {usuario.saldo.toFixed(2)}
-          </Text>
+          <Text style={styles.saldoValor}>R$ {usuario.saldo.toFixed(2)}</Text>
 
           <View style={styles.botoesTransacao}>
             <Button
@@ -241,17 +313,54 @@ export const Perfil = ({ navigation }) => {
           </View>
         </View>
 
+        <View style={styles.objetivoContainer}>
+          <MaterialIcons
+            name="star"
+            size={20}
+            color="#1DB954"
+            style={{ marginRight: 8 }}
+          />
+          {editando ? (
+            <DropdownModal
+              label="Objetivo"
+              value={dadosEditados.objetivo}
+              options={objetivosOptions}
+              onSelect={(id) =>
+                setDadosEditados((prev) => ({
+                  ...prev,
+                  objetivo: id,
+                }))
+              }
+            />
+          ) : (
+            <Text style={styles.objetivoText}>
+              {usuario.objetivo
+                ? usuario.objetivo.replace(/_/g, " ")
+                : "Sem objetivo definido"}
+            </Text>
+          )}
+        </View>
+
         <View style={styles.infoSection}>
           <Text style={styles.inputLabel}>Email</Text>
-          <Text style={styles.infoValue}>{usuario.email}</Text>
+          {editando ? (
+            <TextInput
+              style={styles.textInput}
+              value={dadosEditados.email}
+              autoCapitalize="none"
+              keyboardType="email-address"
+              onChangeText={(text) =>
+                setDadosEditados((prev) => ({ ...prev, email: text }))
+              }
+            />
+          ) : (
+            <Text style={styles.infoValue}>{usuario.email}</Text>
+          )}
 
           <Text style={styles.inputLabel}>Data de Nascimento</Text>
           <Text style={styles.infoValue}>
             {new Date(usuario.dataNascimento).toLocaleDateString()}
           </Text>
-
-          <Text style={styles.inputLabel}>Objetivo</Text>
-          <Text style={styles.infoValue}>{usuario.objetivo.replace(/_/g, " ")}</Text>
 
           <Text style={styles.inputLabel}>Chave Pix</Text>
           {editando ? (
@@ -288,7 +397,7 @@ export const Perfil = ({ navigation }) => {
             </View>
           ) : (
             <Button
-              title="Editar Chave Pix"
+              title="Editar Perfil"
               onPress={() => setEditando(true)}
               variant="secondary"
             />
@@ -299,12 +408,16 @@ export const Perfil = ({ navigation }) => {
       <BottomNav active={"Perfil"} />
       {renderModalTransacao("deposito")}
       {renderModalTransacao("saque")}
+
+      <ModalFeedback
+        visible={feedbackVisible}
+        type={feedbackType}
+        message={feedbackMessage}
+        onClose={() => setFeedbackVisible(false)}
+      />
     </View>
   );
 };
-
-
-
 
 const styles = StyleSheet.create({
   container: {
@@ -336,7 +449,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
     borderWidth: 2,
-    borderColor: "#00D4AA",
+    borderColor: "#1DB954",
     marginBottom: 12,
   },
   username: {
@@ -357,7 +470,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   saldoValor: {
-    color: "#00D4AA",
+    color: "#1DB954",
     fontSize: 28,
     fontWeight: "bold",
     marginBottom: 20,
@@ -369,6 +482,21 @@ const styles = StyleSheet.create({
   },
   botaoTransacao: {
     flex: 1,
+  },
+  objetivoContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1DB95433",
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  objetivoText: {
+    color: "#1DB954",
+    fontSize: 16,
+    fontWeight: "600",
+    flexShrink: 1,
   },
   infoSection: {
     backgroundColor: "#2A2A2A",
@@ -453,4 +581,3 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 });
-

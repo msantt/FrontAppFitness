@@ -14,7 +14,8 @@ import { Header } from "../components/Header";
 import ButtonDesafios from "../components/ButtonDesafios";
 import { apiService } from "../services/apiMooks";
 import { BottomNav } from "../components/BottomNav";
-
+import { ModalConfirmacao } from "../components/ModalConfirm";
+import { ModalFeedback } from "../components/ModalFeedback";
 const { width } = Dimensions.get("window");
 
 export const DetalhesDesafios = ({ navigation, route }) => {
@@ -24,6 +25,10 @@ export const DetalhesDesafios = ({ navigation, route }) => {
   const [checkinLoading, setCheckinLoading] = useState(false);
   const [timeline, setTimeline] = useState([]);
   const [userId, setUserId] = useState("u1");
+  const [showModalDesistencia, setShowModalDesistencia] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackType, setFeedbackType] = useState("success");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   const loadDesafioDetalhes = async () => {
     try {
@@ -65,38 +70,26 @@ export const DetalhesDesafios = ({ navigation, route }) => {
   };
 
   const confirmarDesistencia = () => {
-    Alert.alert(
-      "Confirmação de Desistência",
-      "Você tem certeza que deseja desistir deste desafio?",
-      [
-        {
-          text: "Cancelar",
-          style: "cancel",
-        },
-        {
-          text: "Desistir",
-          style: "destructive",
-          onPress: () => handleDesistir(),
-        },
-      ],
-      { cancelable: false }
-    );
+    setShowModalDesistencia(true);
   };
 
   const handleDesistir = async () => {
     try {
       await apiService.desistirDoDesafio(desafio.id, userId);
-      Alert.alert(
-        "Sucesso",
+      setFeedbackType("success");
+      setFeedbackMessage(
         "Você desistiu do desafio e seu saldo foi atualizado."
       );
-      navigation.goBack();
+      setShowFeedback(true);
     } catch (error) {
       const mensagemErro =
         error.message || "Não foi possível desistir do desafio.";
-      Alert.alert("Erro", mensagemErro);
+      setFeedbackType("error");
+      setFeedbackMessage(mensagemErro);
+      setShowFeedback(true);
     }
   };
+
   useEffect(() => {
     const loadDados = async () => {
       try {
@@ -466,6 +459,26 @@ export const DetalhesDesafios = ({ navigation, route }) => {
       <View style={styles.bottomNav}>
         <BottomNav active={"DesafiosScreen"} />
       </View>
+      <ModalConfirmacao
+        visible={showModalDesistencia}
+        mensagem="Você tem certeza que deseja desistir deste desafio? Seu saldo será atualizado."
+        onCancel={() => setShowModalDesistencia(false)}
+        onConfirm={() => {
+          setShowModalDesistencia(false);
+          handleDesistir();
+        }}
+      />
+      <ModalFeedback
+        visible={showFeedback}
+        type={feedbackType}
+        message={feedbackMessage}
+        onClose={() => {
+          setShowFeedback(false);
+          if (feedbackType === "success") {
+            navigation.goBack();
+          }
+        }}
+      />
     </View>
   );
 };
