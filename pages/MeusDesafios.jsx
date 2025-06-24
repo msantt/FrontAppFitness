@@ -26,12 +26,9 @@ export const DesafiosScreen = ({ navigation }) => {
   const loadUsuario = async () => {
     try {
       const email = await AsyncStorage.getItem('userEmail');
-      console.log("Email do usuário no AsyncStorage:", email);
-
       if (!email) throw new Error('Usuário não encontrado no armazenamento local');
 
       const usuario = await apiService.getUsuarioByEmail(email);
-      console.log("Usuário retornado da API:", usuario);
 
       if (!usuario || !usuario.id) throw new Error('Usuário inválido retornado pela API');
 
@@ -46,7 +43,6 @@ export const DesafiosScreen = ({ navigation }) => {
 
   const loadAllDesafios = async () => {
     if (!userId) {
-      console.log("UserId ainda não definido, não carrega desafios");
       return;
     }
 
@@ -59,10 +55,6 @@ export const DesafiosScreen = ({ navigation }) => {
         apiService.getDesafiosPraVoce(userId),
         apiService.getDesafios(),
       ]);
-
-      console.log("Meus desafios:", meus);
-      console.log("Desafios pra você:", praVoce);
-      console.log("Explorar desafios:", explorar);
 
       setMeusDesafios(meus ?? []);
       setDesafiosPraVoce(praVoce ?? []);
@@ -95,11 +87,23 @@ export const DesafiosScreen = ({ navigation }) => {
   const verificarMembroDoDesafio = async (usuarioId, desafioId) => {
     try {
       const membros = await apiService.getMembrosPorUsuario(usuarioId);
-      const isMembro = membros.some((membro) => membro.desafio.id === desafioId);
-      return isMembro;
+
+      const membroDoDesafio = membros.find(
+        (membro) => membro.desafio?.id === desafioId
+      );
+
+      if (!membroDoDesafio) {
+        return { isMembro: false };
+      }
+
+      if (membroDoDesafio.status === "INATIVO") {
+        return { isMembro: false };
+      }
+
+      return { isMembro: true };
     } catch (error) {
       console.error("Erro ao verificar membro do desafio:", error);
-      return false;
+      return { isMembro: false };
     }
   };
 
@@ -108,14 +112,14 @@ export const DesafiosScreen = ({ navigation }) => {
       setErrorMsg('Usuário não carregado ainda.');
       return;
     }
-    const isMembro = await verificarMembroDoDesafio(userId, desafio.id);
+
+    const { isMembro } = await verificarMembroDoDesafio(userId, desafio.id);
 
     if (isMembro) {
       navigation.navigate('DetalhesDesafios', { desafioId: desafio.id });
     } else {
       navigation.navigate('ParticiparDesafio', {
-        desafioId: desafio.id,
-        nomeDesafio: desafio.nome,
+        desafioId: desafio.id
       });
     }
   };
@@ -124,10 +128,8 @@ export const DesafiosScreen = ({ navigation }) => {
     navigation.navigate('CriarDesafios');
   };
 
-  // Ajuste para acessar o objeto correto nos meusDesafios
   const renderDesafiosSection = (title, desafiosList, isMeusDesafios = false) => {
     if (desafiosList.length === 0) {
-      // Se não tem desafios, não renderiza nada (pode retornar null)
       return null;
     }
 
@@ -152,6 +154,11 @@ export const DesafiosScreen = ({ navigation }) => {
       </View>
     );
   };
+
+  // Filtro para mostrar apenas meus desafios com status diferente de INATIVO
+  const meusDesafiosAtivos = meusDesafios.filter(
+    (m) => m.status && m.status !== "INATIVO"
+  );
 
   if (loading && !userId) {
     return (
@@ -193,9 +200,14 @@ export const DesafiosScreen = ({ navigation }) => {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {meusDesafios.length > 0 && renderDesafiosSection('Meus Desafios', meusDesafios, true)}
-        {desafiosPraVoce.length > 0 && renderDesafiosSection('Pra Você', desafiosPraVoce)}
-        {explorarDesafios.length > 0 && renderDesafiosSection('Explorar', explorarDesafios)}
+        {meusDesafiosAtivos.length > 0 &&
+          renderDesafiosSection('Meus Desafios', meusDesafiosAtivos, true)}
+
+        {desafiosPraVoce.length > 0 &&
+          renderDesafiosSection('Pra Você', desafiosPraVoce)}
+
+        {explorarDesafios.length > 0 &&
+          renderDesafiosSection('Explorar', explorarDesafios)}
       </ScrollView>
 
       <TouchableOpacity style={styles.fab} onPress={handleCreateDesafio}>
@@ -239,12 +251,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 12,
-  },
-  noDesafiosText: {
-    color: '#BBB',
-    fontSize: 16,
-    fontStyle: 'italic',
-    paddingHorizontal: 8,
   },
   errorContainer: {
     backgroundColor: '#800000AA',

@@ -13,16 +13,17 @@ import { SignUpScreen3 } from "../pages/SignUpScreen3";
 import { SignUpScreen4 } from "../pages/SignUpScreen4";
 import DesafiosScreen from "../pages/MeusDesafios";
 import { CriarDesafios } from "../pages/CriarDesafio";
-import {DetalhesDesafios} from "../pages/DetalhesDesafios";
+import { DetalhesDesafios } from "../pages/DetalhesDesafios";
 import { ParticiparDesafioScreen } from "../pages/DetalhesParticiparDesafio";
-import { Perfil } from '../pages/Perfil';
+import { Perfil } from "../pages/Perfil";
 import { Ranking } from "../pages/Ranking";
-import { Notificacao } from  "../pages/Notificacao"
+import { Notificacao } from "../pages/Notificacao";
 import CheckInFlow from "../pages/CheckInFlow";
 import { HomeScreen } from "../pages/HomeScreen";
 import { EncontrarGruposScreen } from "../pages/EncontrarGruposScreen";
 import { CriarGrupoScreen } from "../pages/CriarGrupoScreen";
 import { ConfirmacaoCriacaoGrupoScreen } from "../pages/ConfirmacaoCriacaoGrupoScreen";
+import  GroupDetails  from "../pages/GroupDetailsScreen";
 
 const Stack = createStackNavigator();
 
@@ -63,15 +64,29 @@ export default function AppNavegation() {
         <Stack.Screen name="DesafiosScreen" component={DesafiosScreen} />
         <Stack.Screen name="CriarDesafios" component={CriarDesafios} />
         <Stack.Screen name="DetalhesDesafios" component={DetalhesDesafios} />
-        <Stack.Screen name="ParticiparDesafio" component={ParticiparDesafioScreen} />
+        <Stack.Screen
+          name="ParticiparDesafio"
+          component={ParticiparDesafioScreen}
+        />
         <Stack.Screen name="Perfil" component={Perfil} />
         <Stack.Screen name="Ranking" component={Ranking} />
         <Stack.Screen name="Notificacao" component={Notificacao} />
         <Stack.Screen name="CheckInFlow" component={CheckInFlow} />
         <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="EncontrarGruposScreen" component={EncontrarGruposScreen} />
+        <Stack.Screen
+          name="EncontrarGruposScreen"
+          component={EncontrarGruposScreen}
+        />
         <Stack.Screen name="CriarGrupoScreen" component={CriarGrupoScreen} />
-        <Stack.Screen name="ConfirmacaoCriacaoGrupoScreen" component={ConfirmacaoCriacaoGrupoScreen} />
+        <Stack.Screen
+          name="ConfirmacaoCriacaoGrupoScreen"
+          component={ConfirmacaoCriacaoGrupoScreen}
+        />
+        <Stack.Screen
+          name="GroupDetails"
+          component={GroupDetails}
+          options={{ headerShown: false }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

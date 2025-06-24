@@ -32,7 +32,6 @@ export function EncontrarGruposScreen() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("todos");
-  const [isFilterModalVisible, setFilterModalVisible] = useState(false);
 
   const [confirmModalVisible, setConfirmModalVisible] = useState(false);
   const [grupoSelecionadoConfirmacao, setGrupoSelecionadoConfirmacao] =
@@ -61,7 +60,7 @@ export function EncontrarGruposScreen() {
         }
       } catch (error) {
         setFeedbackType("error");
-        setFeedbackMessage("Não foi possivel carregar os dados do usuario");
+        setFeedbackMessage("Erro ao carregar os dados do usuário.");
         setFeedbackVisible(true);
       } finally {
         setLoading(false);
@@ -91,7 +90,6 @@ export function EncontrarGruposScreen() {
       setGrupos(data);
     } catch (error) {
       Alert.alert("Erro", "Não foi possível carregar os grupos.");
-      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -104,13 +102,19 @@ export function EncontrarGruposScreen() {
   }, [isFocused, filterType]);
 
   const handleGroupPress = (grupo) => {
-    if (grupo.tipoGrupo.toLowerCase() === "publico") {
-      setGrupoSelecionadoConfirmacao(grupo);
-      setConfirmModalVisible(true);
+    const isMember = grupo.membros?.some((m) => m.usuario.id === usuario.id);
+
+    if (isMember) {
+      navigation.navigate("GroupDetails", { grupoId: grupo.id });
     } else {
-      setSelectedPrivateGroup(grupo);
-      setPrivateGroupCode("");
-      setPrivateModalVisible(true);
+      if (grupo.tipoGrupo.toLowerCase() === "publico") {
+        setGrupoSelecionadoConfirmacao(grupo);
+        setConfirmModalVisible(true);
+      } else {
+        setSelectedPrivateGroup(grupo);
+        setPrivateGroupCode("");
+        setPrivateModalVisible(true);
+      }
     }
   };
 
@@ -140,11 +144,6 @@ export function EncontrarGruposScreen() {
       setConfirmModalVisible(false);
       setGrupoSelecionadoConfirmacao(null);
     }
-  };
-
-  const cancelarEntradaGrupo = () => {
-    setConfirmModalVisible(false);
-    setGrupoSelecionadoConfirmacao(null);
   };
 
   const handlePrivateGroupEntry = async () => {
@@ -179,17 +178,9 @@ export function EncontrarGruposScreen() {
 
   const renderGroupCard = (grupo) => {
     const nomeCriador = grupo.criador?.nome ?? "Desconhecido";
-
-    let membrosInfo = "";
-    if (typeof grupo.membros === "number") {
-      membrosInfo = grupo.membros;
-    } else if (Array.isArray(grupo.membros)) {
-      membrosInfo = grupo.membros.length;
-    } else if (grupo.membros && typeof grupo.membros === "object") {
-      membrosInfo = grupo.membros.count || JSON.stringify(grupo.membros);
-    } else {
-      membrosInfo = "0";
-    }
+    const membrosCount = Array.isArray(grupo.membros)
+      ? grupo.membros.length
+      : grupo.membros?.count ?? 0;
 
     return (
       <TouchableOpacity
@@ -211,46 +202,31 @@ export function EncontrarGruposScreen() {
               <Feather name="lock" size={width * 0.04} color="#FFD700" />
             )}
           </View>
-          {grupo.descricao && (
-            <Text style={styles.groupDescription}>
-              {grupo.descricao.length > 50
-                ? grupo.descricao.substring(0, 50) + "..."
-                : grupo.descricao}
-            </Text>
-          )}
+
+          <Text style={styles.groupDescription}>
+            {grupo.descricao?.length > 50
+              ? grupo.descricao.substring(0, 50) + "..."
+              : grupo.descricao}
+          </Text>
 
           <Text style={styles.groupMembers}>
-            {membrosInfo}{" "}
-            {membrosInfo === 1 ? "Membro Ativo" : "Membros Ativos"}
+            {membrosCount}{" "}
+            {membrosCount === 1 ? "Membro Ativo" : "Membros Ativos"}
           </Text>
 
           <Text style={styles.groupCategory}>Criador: {nomeCriador}</Text>
         </View>
-        {grupo.tipoGrupo.toLowerCase() === "publico" && (
-          <View style={styles.enterButtonContainer}>
-            <AntDesign name="rightcircle" size={width * 0.06} color="#00D95F" />
-          </View>
-        )}
+
+        <View style={styles.enterButtonContainer}>
+          <AntDesign name="rightcircle" size={width * 0.06} color="#00D95F" />
+        </View>
       </TouchableOpacity>
     );
   };
 
   return (
     <View style={styles.container}>
-      <Header
-        title="Encontrar Grupos"
-        showBackButton={false}
-        rightComponent={
-          <View style={styles.headerRight}>
-            <TouchableOpacity
-              style={styles.filterButton}
-              onPress={() => setFilterModalVisible(true)}
-            >
-              <Feather name="filter" size={width * 0.06} color="#FFF" />
-            </TouchableOpacity>
-          </View>
-        }
-      />
+      <Header title="Encontrar Grupos" showBackButton={false} />
 
       <View style={styles.searchContainer}>
         <Feather
@@ -281,15 +257,16 @@ export function EncontrarGruposScreen() {
         </ScrollView>
       )}
 
-      {/* Modal confirmação para grupo público */}
       <ModalConfirmacao
         visible={confirmModalVisible}
-        mensagem={`Deseja realmente entrar no grupo "${grupoSelecionadoConfirmacao?.nome}"?`}
+        mensagem={`Deseja entrar no grupo "${grupoSelecionadoConfirmacao?.nome}"?`}
         onConfirm={confirmarEntradaGrupo}
-        onCancel={cancelarEntradaGrupo}
+        onCancel={() => {
+          setConfirmModalVisible(false);
+          setGrupoSelecionadoConfirmacao(null);
+        }}
       />
 
-      {/* Modal feedback de sucesso/erro */}
       <ModalFeedback
         visible={feedbackVisible}
         type={feedbackType}
@@ -297,7 +274,6 @@ export function EncontrarGruposScreen() {
         onClose={() => setFeedbackVisible(false)}
       />
 
-      {/* Modal para grupo privado */}
       <Modal
         visible={isPrivateModalVisible}
         transparent
@@ -308,8 +284,8 @@ export function EncontrarGruposScreen() {
           <View style={styles.modalView}>
             <Text style={styles.modalTitle}>Entrar no Grupo Privado</Text>
             <Text style={styles.modalSubtitle}>
-              Insira o código de acesso para entrar no grupo "
-              {selectedPrivateGroup?.nome}"
+              Insira o código para entrar no grupo "{selectedPrivateGroup?.nome}
+              "
             </Text>
             <TextInput
               style={styles.codeInput}
@@ -349,72 +325,29 @@ export function EncontrarGruposScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#1E1E1E",
-  },
-  scrollContent: {
-    paddingHorizontal: width * 0.04,
-    paddingBottom: 100,
-  },
-  loadingText: {
-    color: "#FFF",
-    textAlign: "center",
-    marginTop: 20,
-    fontSize: width * 0.04,
-  },
-  noGroupsText: {
-    color: "#CCC",
-    textAlign: "center",
-    marginTop: 50,
-    fontSize: width * 0.045,
-  },
-  headerRight: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  filterButton: {
-    marginRight: width * 0.03,
-    padding: width * 0.02,
-  },
-  addButton: {
-    width: width * 0.12,
-    height: width * 0.12,
-    borderRadius: width * 0.06,
-    backgroundColor: "#00D95F",
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  container: { flex: 1, backgroundColor: "#1E1E1E" },
+  scrollContent: { paddingHorizontal: width * 0.04, paddingBottom: 100 },
+  loadingText: { color: "#FFF", textAlign: "center", marginTop: 20 },
+  noGroupsText: { color: "#CCC", textAlign: "center", marginTop: 50 },
   searchContainer: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#2A2A2A",
     borderRadius: 10,
-    marginHorizontal: width * 0.04,
-    marginBottom: 20,
+    margin: width * 0.04,
     paddingHorizontal: 15,
     height: 50,
   },
-  searchIcon: {
-    marginRight: 10,
-  },
-  searchInput: {
-    flex: 1,
-    color: "#FFF",
-    fontSize: width * 0.04,
-  },
+  searchIcon: { marginRight: 10 },
+  searchInput: { flex: 1, color: "#FFF", fontSize: width * 0.04 },
+
   groupCard: {
     flexDirection: "row",
     backgroundColor: "#2A2A2A",
     borderRadius: 15,
     marginBottom: 15,
-    overflow: "hidden",
     alignItems: "center",
     padding: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
     elevation: 5,
   },
   groupImage: {
@@ -423,14 +356,8 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginRight: 15,
   },
-  groupInfo: {
-    flex: 1,
-  },
-  groupHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 5,
-  },
+  groupInfo: { flex: 1 },
+  groupHeader: { flexDirection: "row", alignItems: "center", marginBottom: 5 },
   groupName: {
     color: "#FFF",
     fontSize: width * 0.045,
@@ -442,18 +369,10 @@ const styles = StyleSheet.create({
     fontSize: width * 0.035,
     marginBottom: 5,
   },
-  groupMembers: {
-    color: "#CCC",
-    fontSize: width * 0.035,
-  },
-  groupCategory: {
-    color: "#00D95F",
-    fontSize: width * 0.03,
-    marginTop: 2,
-  },
-  enterButtonContainer: {
-    padding: 10,
-  },
+  groupMembers: { color: "#CCC", fontSize: width * 0.035 },
+  groupCategory: { color: "#00D95F", fontSize: width * 0.03, marginTop: 2 },
+  enterButtonContainer: { padding: 10 },
+
   centeredView: {
     flex: 1,
     justifyContent: "center",
@@ -461,24 +380,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.7)",
   },
   modalView: {
-    margin: 20,
     backgroundColor: "#2A2A2A",
     borderRadius: 20,
     padding: 35,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
     width: "80%",
   },
   modalTitle: {
     fontSize: width * 0.055,
-    fontWeight: "bold",
     color: "#00D95F",
     marginBottom: 15,
     textAlign: "center",
@@ -504,8 +413,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#00D95F",
     borderRadius: 10,
     paddingVertical: 12,
-    paddingHorizontal: 20,
-    elevation: 2,
     width: "100%",
     marginBottom: 10,
   },
@@ -515,30 +422,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontSize: width * 0.045,
   },
-  closeModalButton: {
-    marginTop: 10,
-    padding: 10,
-  },
-  closeModalButtonText: {
-    color: "#CCC",
-    fontSize: width * 0.035,
-  },
-  filterOption: {
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginVertical: 5,
-    backgroundColor: "#333",
-    width: "100%",
-  },
-  filterOptionSelected: {
-    backgroundColor: "#00D95F",
-  },
-  filterOptionText: {
-    color: "#FFF",
-    fontSize: width * 0.04,
-    textAlign: "center",
-  },
+  closeModalButton: { marginTop: 10, padding: 10 },
+  closeModalButtonText: { color: "#CCC", fontSize: width * 0.035 },
+
   fab: {
     position: "absolute",
     right: 20,
@@ -549,15 +435,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#00D95F",
     justifyContent: "center",
     alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
   },
-  fabIcon: {
-    color: "#000",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
+  fabIcon: { color: "#000", fontSize: 24, fontWeight: "bold" },
 });

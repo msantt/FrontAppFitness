@@ -1,6 +1,34 @@
 const API_URL = "http://ec2-52-22-160-200.compute-1.amazonaws.com:8080";
 
 export const apiService = {
+  salvarCheckIn: async (payload) => {
+    const response = await fetch(`${API_URL}/check-in`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      console.error("Erro na resposta do backend:", errorBody);
+      throw new Error("Erro ao salvar check-in");
+    }
+
+    // Se status 204 No Content, não tentar parsear JSON
+    if (response.status === 204) {
+      return null;
+    }
+
+    // Se o body for vazio, também evita erro
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+
+    // Se tiver conteúdo, parseia JSON normalmente
+    return JSON.parse(text);
+  },
+
   // 🔐 Login
   login: async (email, senha) => {
     try {
@@ -70,17 +98,61 @@ export const apiService = {
       throw error;
     }
   },
+
+  getDesafiosByGrupoId: async (grupoId) => {
+    const response = await fetch(`${API_URL}/desafios/por-grupo/${grupoId}`);
+    if (!response.ok) {
+      if (response.status === 204) return [];
+      throw new Error("Erro ao buscar desafios do grupo");
+    }
+    const text = await response.text();
+    if (!text) return [];
+    return JSON.parse(text);
+  },
+
+  sairDoGrupo: async (membroId) => {
+    const response = await fetch(`${API_URL}/membros-grupo/${membroId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error("Resposta do backend:", errorText);
+      throw new Error("Erro ao sair do grupo");
+    }
+
+    return true;
+  },
+
+  getCheckInsByDesafioId: async (desafioId) => {
+    const response = await fetch(`${API_URL}/check-in/desafio/${desafioId}`);
+    if (!response.ok) {
+      if (response.status === 204) return [];
+      throw new Error("Erro ao buscar check-ins");
+    }
+    const text = await response.text();
+    if (!text) return [];
+    return JSON.parse(text);
+  },
+
   getMembrosByDesafio: async (desafioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/desafio/${desafioId}`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/desafio/${desafioId}`
+      );
+
       if (!response.ok) {
         if (response.status === 204) return [];
-        throw new Error(`Erro ao buscar membros do desafio (status ${response.status})`);
+        throw new Error(
+          `Erro ao buscar membros do desafio (status ${response.status})`
+        );
       }
-      return await response.json();
+      const text = await response.text();
+      if (!text) return [];
+      const data = JSON.parse(text);
+      return data;
     } catch (error) {
-      console.error("Erro em getMembrosByDesafio:", error);
-      throw error;
+      return [];
     }
   },
 
@@ -94,6 +166,29 @@ export const apiService = {
       return await response.json();
     } catch (error) {
       console.error("Erro em getGrupos:", error);
+      throw error;
+    }
+  },
+  getGrupoById: async (grupoId) => {
+    try {
+      const response = await fetch(`${API_URL}/grupos/${grupoId}`);
+      if (!response.ok) throw new Error("Erro ao buscar detalhes do grupo");
+      return await response.json();
+    } catch (error) {
+      console.error("Erro em getGrupoById:", error);
+      throw error;
+    }
+  },
+  getMembrosByGrupo: async (grupoId) => {
+    try {
+      const response = await fetch(`${API_URL}/membros-grupo/grupo/${grupoId}`);
+      if (!response.ok) {
+        if (response.status === 204) return [];
+        throw new Error("Erro ao buscar membros do grupo");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erro em getMembrosByGrupo:", error);
       throw error;
     }
   },
@@ -265,17 +360,24 @@ export const apiService = {
   },
 
   // 📋 Buscar check-ins de um desafio
-  getCheckinsByDesafio: async (desafioId) => {
+  getCheckInsByDesafioId: async (desafioId) => {
     try {
       const response = await fetch(`${API_URL}/check-in/desafio/${desafioId}`);
+
       if (!response.ok) {
         if (response.status === 204) return [];
-        throw new Error("Erro ao buscar check-ins");
+        throw new Error(
+          `Erro ao buscar check-ins do desafio (status ${response.status})`
+        );
       }
-      return await response.json();
+
+      const text = await response.text();
+      if (!text) return [];
+
+      return JSON.parse(text);
     } catch (error) {
-      console.error("Erro em getCheckinsByDesafio:", error);
-      throw error;
+      console.error("Erro em getCheckInsByDesafioId:", error);
+      return [];
     }
   },
 
@@ -370,13 +472,37 @@ export const apiService = {
     try {
       const response = await fetch(`${API_URL}/check-in/usuario/${usuarioId}`);
       if (!response.ok) {
-        if (response.status === 204) return []; // Sem conteúdo
-        throw new Error("Erro ao buscar check-ins do usuário");
+        if (response.status === 204) return [];
+        throw new Error(
+          `Erro ao buscar check-ins do usuário (status ${response.status})`
+        );
       }
-      return await response.json();
+      const text = await response.text();
+      if (!text) return [];
+      return JSON.parse(text);
     } catch (error) {
       console.error("Erro em getCheckInsByUsuarioId:", error);
-      throw error;
+      return [];
+    }
+  },
+
+  getRankingByDesafioId: async (desafioId) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/membros-desafio/desafio/${desafioId}/ranking`
+      );
+      if (!response.ok) {
+        if (response.status === 204) return [];
+        throw new Error(
+          `Erro ao buscar ranking do desafio (status ${response.status})`
+        );
+      }
+      const text = await response.text();
+      if (!text) return [];
+      return JSON.parse(text);
+    } catch (error) {
+      console.error("Erro em getRankingByDesafioId:", error);
+      return [];
     }
   },
 
@@ -388,22 +514,9 @@ export const apiService = {
     return await response.json();
   },
 
-  participarDesafio: async (
-    usuarioId,
-    desafioId,
-    status = "ATIVO",
-    dataConclusao = null
-  ) => {
+  participarDesafio: async (body) => {
     try {
-      const dataFinal = dataConclusao || new Date().toISOString().slice(0, 10);
-
-      const body = {
-        usuario: { id: usuarioId },
-        desafio: { id: desafioId },
-        status,
-        dataConclusao: dataFinal,
-      };
-
+      console.log(body);
       const response = await fetch(`${API_URL}/membros-desafio`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -509,6 +622,21 @@ export const apiService = {
     const text = await response.text();
     const saldoAtualizado = parseFloat(text);
     return saldoAtualizado;
+  },
+
+  getNotificacoesByUsuario: async (usuarioId) => {
+    try {
+      const response = await fetch(
+        `${API_URL}/usuarios/${usuarioId}/notificacoes`
+      );
+      if (!response.ok) {
+        throw new Error("Erro ao buscar notificações");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Erro em getNotificacoesByUsuario:", error);
+      throw error;
+    }
   },
 
   sacar: async (idUsuario, valor) => {

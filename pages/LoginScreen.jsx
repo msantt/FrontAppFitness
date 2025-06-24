@@ -13,7 +13,8 @@ import Button from "../components/Button";
 import SocialButton from "../components/SocialButton";
 import BackgroundDefault from "../components/BackgroundDefault";
 import TextLink from "../components/Links";
-import { apiService } from '../services/api';
+import { apiService } from "../services/api";
+import { ModalFeedback } from "../components/ModalFeedback";
 
 import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -25,6 +26,9 @@ export function LoginScreen({ navigation }) {
   const [senha, setSenha] = useState("");
   const [lembrar, setLembrar] = useState(false);
   const [senhaVisivel, setSenhaVisivel] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackType, setFeedbackType] = useState("success");
+  const [feedbackMessage, setFeedbackMessage] = useState("");
 
   useEffect(() => {
     AsyncStorage.getItem("loginData").then((data) => {
@@ -38,32 +42,33 @@ export function LoginScreen({ navigation }) {
   }, []);
 
   const handleLogin = async () => {
-  try {
-    const resultado = await apiService.login(email, senha);
-    console.log('Login realizado com sucesso:', resultado);
+    try {
+      const resultado = await apiService.login(email, senha);
+      console.log("Login realizado com sucesso:", resultado);
 
-    const { token } = resultado;
-    if (!token) {
-      throw new Error('Token não recebido da API');
+      const { token } = resultado;
+      if (!token) {
+        throw new Error("Token não recebido da API");
+      }
+
+      await AsyncStorage.setItem("authToken", token);
+      await AsyncStorage.setItem("userEmail", email);
+
+      if (lembrar) {
+        await AsyncStorage.setItem("loginEmailLembrado", email);
+        await AsyncStorage.setItem("loginSenhaLembrada", senha);
+      } else {
+        await AsyncStorage.removeItem("loginEmailLembrado");
+        await AsyncStorage.removeItem("loginSenhaLembrada");
+      }
+
+      navigation.navigate("Home");
+    } catch (error) {
+      setFeedbackType("error");
+      setFeedbackMessage("Email ou Senha Inválidos!");
+      setShowFeedback(true);
     }
-
-    await AsyncStorage.setItem('authToken', token);
-    await AsyncStorage.setItem('userEmail', email);
-
-    if (lembrar) {
-      await AsyncStorage.setItem('loginEmailLembrado', email);
-      await AsyncStorage.setItem('loginSenhaLembrada', senha);
-    } else {
-      await AsyncStorage.removeItem('loginEmailLembrado');
-      await AsyncStorage.removeItem('loginSenhaLembrada');
-    }
-
-    navigation.navigate('Home');
-  } catch (error) {
-    console.error('Falha no login:', error);
-    alert('Usuário não foi encontrado.');
-  }
-};
+  };
   return (
     <BackgroundDefault>
       <View style={styles.screen}>
@@ -172,6 +177,17 @@ export function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
       </View>
+      <ModalFeedback
+        visible={showFeedback}
+        type={feedbackType}
+        message={feedbackMessage}
+        onClose={() => {
+          setShowFeedback(false);
+          if (feedbackType === "success") {
+            navigation.navigate("Home");
+          }
+        }}
+      />
     </BackgroundDefault>
   );
 }

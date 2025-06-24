@@ -5,24 +5,27 @@ import {
   ScrollView,
   StyleSheet,
   Image,
-  TouchableOpacity,
   RefreshControl,
   Alert,
 } from "react-native";
 import { Header } from "../components/Header";
-import { apiService } from "../services/apiMooks";
+import { apiService } from "../services/api";
 import { BottomNav } from "../components/BottomNav";
 
-export const Ranking = ({ navigation, idDesafio }) => {
+export const Ranking = ({ navigation, route }) => {
+  const { desafioId } = route.params;
   const [rankingData, setRankingData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  const defaultAvatar = "https://via.placeholder.com/80?text=Sem+Foto";
+
   const loadRanking = async () => {
     try {
-      const data = await apiService.getRankingByDesafioId(idDesafio);
+      console.log("Desafio ID:", desafioId);
+      const data = await apiService.getRankingByDesafioId(desafioId);
       console.log("Ranking Data:", data);
-      setRankingData(data?.ranking || []);
+      setRankingData(data || []);
     } catch (error) {
       Alert.alert("Erro", "Não foi possível carregar o ranking");
     } finally {
@@ -38,83 +41,79 @@ export const Ranking = ({ navigation, idDesafio }) => {
 
   useEffect(() => {
     loadRanking();
-  }, [idDesafio]);
+  }, [desafioId]);
 
-  const defaultAvatar = "https://via.placeholder.com/80?text=Sem+Foto";
+  const renderPodiumItem = (item, posicao, isFirst = false) => {
+    if (!item) return null;
 
-  const renderPodium = () => {
-    if (rankingData.length === 0) return null;
-
-    const [primeiro, segundo, terceiro] = [
-      rankingData[0] || {},
-      rankingData[1] || {},
-      rankingData[2] || {},
-    ];
+    const usuario = item.usuario || {};
+    const pontuacao = item.pontuacao || {};
 
     return (
-      <View style={styles.podiumContainer}>
-        {renderPodiumItem(segundo, 2)}
-        {renderPodiumItem(primeiro, 1, true)}
-        {renderPodiumItem(terceiro, 3)}
+      <View
+        style={[styles.podiumPosition, isFirst && styles.podiumFirst]}
+        key={item.id || posicao}
+      >
+        <View style={styles.podiumImageContainer}>
+          <Image
+            source={{ uri: usuario.urlFoto || defaultAvatar }}
+            style={[styles.podiumAvatar, isFirst && styles.podiumAvatarFirst]}
+          />
+          <View
+            style={[
+              styles.podiumBadge,
+              posicao === 1
+                ? styles.podiumBadgeFirst
+                : posicao === 2
+                ? styles.podiumBadgeSecond
+                : styles.podiumBadgeThird,
+            ]}
+          >
+            <Text style={styles.podiumBadgeText}>{posicao}</Text>
+          </View>
+        </View>
+        <Text style={styles.podiumName}>{usuario.nome || "-"}</Text>
+        <Text style={styles.podiumPoints}>
+          {pontuacao.pontuacao != null ? `${pontuacao.pontuacao} pts` : "- pts"}
+        </Text>
+        <Text style={styles.podiumConsecutivos}>
+          🔥 {pontuacao.diasConsecutivos || 0} dias
+        </Text>
       </View>
     );
   };
 
-  const renderPodiumItem = (usuario, posicao, isFirst = false) => (
-    <View
-      style={[styles.podiumPosition, isFirst && styles.podiumFirst]}
-      key={usuario.id || posicao}
-    >
-      <View style={styles.podiumImageContainer}>
+  const renderRankingItem = (item, index) => {
+    if (!item) return null;
+
+    const usuario = item.usuario || {};
+    const pontuacao = item.pontuacao || {};
+
+    return (
+      <View key={item.id} style={styles.rankingItem}>
+        <View style={styles.rankingPosition}>
+          <Text style={styles.rankingPositionText}>{index + 4}</Text>
+        </View>
+
         <Image
-          source={{ uri: usuario.avatar || defaultAvatar }}
-          style={[styles.podiumAvatar, isFirst && styles.podiumAvatarFirst]}
+          source={{ uri: usuario.urlFoto || defaultAvatar }}
+          style={styles.rankingAvatar}
         />
-        <View
-          style={[
-            styles.podiumBadge,
-            posicao === 1
-              ? styles.podiumBadgeFirst
-              : posicao === 2
-              ? styles.podiumBadgeSecond
-              : styles.podiumBadgeThird,
-          ]}
-        >
-          <Text style={styles.podiumBadgeText}>{posicao}</Text>
-        </View>
-      </View>
-      <Text style={styles.podiumName}>{usuario.nome || "-"}</Text>
-      <Text style={styles.podiumPoints}>
-        {usuario.pontos != null ? `${usuario.pontos} pts` : "- pts"}
-      </Text>
-      <Text style={styles.podiumConsecutivos}>
-        🔥 {usuario.diasConsecutivos || 0} dias
-      </Text>
-    </View>
-  );
 
-  const renderRankingItem = (usuario, index) => (
-    <View key={usuario.id} style={styles.rankingItem}>
-      <View style={styles.rankingPosition}>
-        <Text style={styles.rankingPositionText}>{index + 4}</Text>
-      </View>
-
-      <Image
-        source={{ uri: usuario.avatar || defaultAvatar }}
-        style={styles.rankingAvatar}
-      />
-
-      <View style={styles.rankingInfo}>
-        <Text style={styles.rankingName}>{usuario.nome}</Text>
-        <Text style={styles.rankingPoints}>{usuario.pontos} pts</Text>
-        <View style={styles.rankingConsecutivos}>
-          <Text style={styles.rankingConsecutivosText}>
-            🔥 {usuario.diasConsecutivos} dias
+        <View style={styles.rankingInfo}>
+          <Text style={styles.rankingName}>{usuario.nome || "-"}</Text>
+          <Text style={styles.rankingPoints}>
+            {pontuacao.pontuacao != null ? `${pontuacao.pontuacao} pts` : "- pts"}
           </Text>
+          <View style={styles.rankingConsecutivos}>
+            <Text style={styles.rankingConsecutivosText}>
+              🔥 {pontuacao.diasConsecutivos || 0} dias
+            </Text>
+          </View>
         </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   if (loading) {
     return (
@@ -146,21 +145,33 @@ export const Ranking = ({ navigation, idDesafio }) => {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
-        {renderPodium()}
+        {rankingData.length > 0 ? (
+          <>
+            <View style={styles.podiumContainer}>
+              {renderPodiumItem(rankingData[1], 2)}
+              {renderPodiumItem(rankingData[0], 1, true)}
+              {renderPodiumItem(rankingData[2], 3)}
+            </View>
 
-        <View style={styles.rankingSection}>
-          <Text style={styles.rankingTitle}>Ranking Geral</Text>
+            <View style={styles.rankingSection}>
+              <Text style={styles.rankingTitle}>Ranking Geral</Text>
 
-          {rankingData.length > 3 ? (
-            rankingData.slice(3).map((item, index) =>
-              renderRankingItem(item, index)
-            )
-          ) : (
-            <Text style={{ color: "#FFF", textAlign: "center" }}>
-              Nenhum dado além do pódio.
-            </Text>
-          )}
-        </View>
+              {rankingData.length > 3 ? (
+                rankingData.slice(3).map((item, index) =>
+                  renderRankingItem(item, index)
+                )
+              ) : (
+                <Text style={{ color: "#FFF", textAlign: "center" }}>
+                  Nenhum dado além do pódio.
+                </Text>
+              )}
+            </View>
+          </>
+        ) : (
+          <Text style={{ color: "#FFF", textAlign: "center" }}>
+            Nenhum dado no ranking.
+          </Text>
+        )}
       </ScrollView>
       <BottomNav active={"DesafiosScreen"} />
     </View>

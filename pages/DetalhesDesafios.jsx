@@ -1,213 +1,38 @@
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  ScrollView,
-  StyleSheet,
-  Image,
-  TouchableOpacity,
-  Alert,
-  Dimensions,
-} from "react-native";
+import { View, Text, ScrollView, StyleSheet, Alert, Image } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+
 import { Header } from "../components/Header";
-import ButtonDesafios from "../components/ButtonDesafios";
-import { apiService } from "../services/apiMooks";
+import { ProgressBar } from "../components/ProgressBar";
+import { StatsCard } from "../components/StatsCard";
+import { Cronograma } from "../components/Cronograma";
+import { InfoCard } from "../components/InfoCard";
+import { TimelineList } from "../components/TimelineList";
+import { ButtonsGroup } from "../components/ButtonsGroup";
 import { BottomNav } from "../components/BottomNav";
 import { ModalConfirmacao } from "../components/ModalConfirm";
 import { ModalFeedback } from "../components/ModalFeedback";
-const { width } = Dimensions.get("window");
+import { ActivityIndicator } from "react-native";
+
+import { apiService } from "../services/api";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const DetalhesDesafios = ({ navigation, route }) => {
   const { desafioId } = route.params;
+
   const [desafio, setDesafio] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [membros, setMembros] = useState([]);
+  const [meuMembro, setMeuMembro] = useState(null);
   const [checkinLoading, setCheckinLoading] = useState(false);
+  const [minhaPosicao, setMinhaPosicao] = useState(null);
   const [timeline, setTimeline] = useState([]);
-  const [userId, setUserId] = useState("u1");
+  const [rankingData, setRankingData] = useState([]);
+  const [userId, setUserId] = useState(null);
   const [showModalDesistencia, setShowModalDesistencia] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackType, setFeedbackType] = useState("success");
   const [feedbackMessage, setFeedbackMessage] = useState("");
-
-  const loadDesafioDetalhes = async () => {
-    try {
-      const data = await apiService.getDesafioById(desafioId);
-      setDesafio(data);
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar os detalhes do desafio");
-      navigation.goBack();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadTimeline = async () => {
-    try {
-      const checkins = await apiService.getCheckInsByDesafioId(desafioId);
-      setTimeline(checkins);
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar a timeline");
-    }
-  };
-
-  const loadRankingUsuario = async () => {
-    try {
-      const ranking = await apiService.getRankingByDesafioId(desafioId);
-
-      const meuRanking = ranking.find((item) => item.usuarioId === userId);
-
-      if (meuRanking) {
-        setDesafio((prev) => ({
-          ...prev,
-          pontosGanhos: meuRanking.pontos,
-          posicao: meuRanking.posicao,
-        }));
-      }
-    } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar o ranking do usuário");
-    }
-  };
-
-  const confirmarDesistencia = () => {
-    setShowModalDesistencia(true);
-  };
-
-  const handleDesistir = async () => {
-    try {
-      await apiService.desistirDoDesafio(desafio.id, userId);
-      setFeedbackType("success");
-      setFeedbackMessage(
-        "Você desistiu do desafio e seu saldo foi atualizado."
-      );
-      setShowFeedback(true);
-    } catch (error) {
-      const mensagemErro =
-        error.message || "Não foi possível desistir do desafio.";
-      setFeedbackType("error");
-      setFeedbackMessage(mensagemErro);
-      setShowFeedback(true);
-    }
-  };
-
-  useEffect(() => {
-    const loadDados = async () => {
-      try {
-        setLoading(true);
-        await loadDesafioDetalhes();
-        await loadTimeline();
-        await loadRankingUsuario();
-        await loadCheckinsUsuario();
-      } catch (error) {
-        // opcional: lidar com erros gerais
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadDados();
-  }, [desafioId]);
-
-  const renderTimeline = () => {
-    if (!timeline || timeline.length === 0) {
-      return (
-        <Text style={styles.noTimelineText}>
-          Nenhum check-in registrado para este desafio.
-        </Text>
-      );
-    }
-
-    return (
-      <View style={styles.timelineContainer}>
-        <Text style={styles.timelineTitle}>Timeline</Text>
-        <View style={styles.timelineLine} />
-
-        {timeline.map((item) => (
-          <View key={item.id} style={styles.timelineItem}>
-            <View style={styles.timelinePoint}>
-              <View
-                style={[
-                  styles.timelineDot,
-                  item.status.toLowerCase() === "concluido" &&
-                    styles.timelineDotCompleted,
-                  item.status.toLowerCase() === "em_andamento" &&
-                    styles.timelineDotActive,
-                  item.status.toLowerCase() === "pendente" &&
-                    styles.timelineDotPending,
-                ]}
-              />
-              <Text style={styles.timelineTime}>
-                {new Date(item.dataHoraCheckin).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </View>
-
-            <View style={styles.timelineContent}>
-              <View style={styles.usuario}>
-                <Image
-                  source={{ uri: item.membroDesafio.usuario.avatar }}
-                  style={styles.participanteAvatar}
-                />
-                <View style={styles.participanteTexto}>
-                  <Text style={styles.participanteNome}>
-                    {item.membroDesafio.usuario.nome}
-                  </Text>
-                  <Text style={styles.participanteStatus}>
-                    {item.status.charAt(0).toUpperCase() +
-                      item.status.slice(1).toLowerCase()}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </View>
-        ))}
-      </View>
-    );
-  };
-
-  const handleCheckin = () => {
-    navigation.navigate("CheckinDesafio", {
-      desafioId: desafio.id,
-      nomeDesafio: desafio.nome,
-    });
-  };
-
-  const handleVerRanking = () => {
-    navigation.navigate("Ranking", {
-      desafioId: desafio.id,
-      nomeDesafio: desafio.nome,
-    });
-  };
-
-  function calcularProgresso(dataInicioStr, dataFimStr, dataAtualStr = null) {
-    const parseDate = (str) => {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-        return new Date(str + "T00:00:00");
-      }
-      const [dia, mes, ano] = str.split("-");
-      return new Date(`${ano}-${mes}-${dia}T00:00:00`);
-    };
-
-    const dataInicio = parseDate(dataInicioStr);
-    const dataFim = parseDate(dataFimStr);
-    const hoje = dataAtualStr ? parseDate(dataAtualStr) : new Date();
-
-    dataInicio.setHours(0, 0, 0, 0);
-    dataFim.setHours(0, 0, 0, 0);
-    hoje.setHours(0, 0, 0, 0);
-
-    if (hoje < dataInicio) return 0;
-    if (hoje >= dataFim) return 100;
-
-    const diffTotal = (dataFim - dataInicio) / (1000 * 60 * 60 * 24);
-    const diffHoje = (hoje - dataInicio) / (1000 * 60 * 60 * 24);
-
-    const progresso = (diffHoje / diffTotal) * 100;
-
-    return Math.round(progresso);
-  }
-
   const [cronograma, setCronograma] = useState({
     seg: false,
     ter: false,
@@ -218,256 +43,341 @@ export const DetalhesDesafios = ({ navigation, route }) => {
     dom: false,
   });
 
-  const loadCheckinsUsuario = async () => {
-    try {
-      const checkins = await apiService.getCheckInsByUsuarioId(userId);
-
-      const checkinsDesseDesafio = checkins.filter(
-        (checkin) => checkin.membroDesafio.desafio.id === "1"
-      );
-
-      console.log("Check-ins do desafio:", checkinsDesseDesafio);
-      const novoCronograma = {
-        dom: false,
-        seg: false,
-        ter: false,
-        qua: false,
-        qui: false,
-        sex: false,
-        sab: false,
-      };
-
-      checkinsDesseDesafio.forEach((checkin) => {
-        const data = new Date(checkin.dataHoraCheckin);
-        const diaSemana = data.getDay();
-
-        switch (diaSemana) {
-          case 0:
-            novoCronograma.dom = true;
-            break;
-          case 1:
-            novoCronograma.seg = true;
-            break;
-          case 2:
-            novoCronograma.ter = true;
-            break;
-          case 3:
-            novoCronograma.qua = true;
-            break;
-          case 4:
-            novoCronograma.qui = true;
-            break;
-          case 5:
-            novoCronograma.sex = true;
-            break;
-          case 6:
-            novoCronograma.sab = true;
-            break;
+  useEffect(() => {
+    const loadUsuario = async () => {
+      try {
+        const email = await AsyncStorage.getItem("userEmail");
+        if (email) {
+          const usuario = await apiService.getUsuarioByEmail(email);
+          setUserId(usuario.id);
         }
-      });
+      } catch (error) {
+        console.log("Erro ao carregar usuário:", error);
+      }
+    };
+    loadUsuario();
+  }, []);
 
-      setCronograma(novoCronograma);
+  // Carregar detalhes do desafio
+  useEffect(() => {
+    const loadDesafio = async () => {
+      try {
+        setLoading(true);
+        const data = await apiService.getDesafioById(desafioId);
+        setDesafio(data);
+      } catch (error) {
+        Alert.alert("Erro", "Não foi possível carregar os detalhes do desafio");
+        navigation.goBack();
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadDesafio();
+  }, [desafioId]);
+
+  // Carregar membros do desafio
+  useEffect(() => {
+    const loadMembros = async () => {
+      try {
+        const data = await apiService.getMembrosByDesafio(desafioId);
+        setMembros(data);
+      } catch (error) {
+        console.log("Erro ao buscar membros:", error);
+      }
+    };
+
+    loadMembros();
+  }, [desafioId]);
+
+  // Encontrar o membro logado no desafio
+  useEffect(() => {
+    if (membros.length > 0 && userId) {
+      const membroEncontrado = membros.find(
+        (membro) => membro.usuario?.id === userId
+      );
+      setMeuMembro(membroEncontrado || null);
+    }
+  }, [membros, userId]);
+
+  // Carregar ranking, timeline e cronograma
+  useEffect(() => {
+    if (!userId) return;
+
+    const loadDados = async () => {
+      try {
+        const [checkinsDesafio, ranking, checkinsUsuario] = await Promise.all([
+          apiService.getCheckInsByDesafioId(desafioId),
+          apiService.getRankingByDesafioId(desafioId),
+          apiService.getCheckInsByUsuarioId(userId),
+        ]);
+
+        const hoje = new Date();
+        const checkinsHoje = (checkinsDesafio || []).filter((checkin) => {
+          if (!checkin.dataHoraCheckin) return false;
+          const dataCheckin = new Date(checkin.dataHoraCheckin);
+
+          return (
+            dataCheckin.getDate() === hoje.getDate() &&
+            dataCheckin.getMonth() === hoje.getMonth() &&
+            dataCheckin.getFullYear() === hoje.getFullYear()
+          );
+        });
+
+        setTimeline(checkinsHoje);
+
+        setRankingData(ranking || []);
+
+        if (ranking && ranking.length > 0) {
+          const index = ranking.findIndex(
+            (item) => item.usuarioId === userId || item.usuario?.id === userId
+          );
+
+          if (index !== -1) {
+            setMinhaPosicao(index + 1);
+          } else {
+            setMinhaPosicao("-");
+          }
+        }
+
+        const checkinsDesseDesafio = (checkinsUsuario || []).filter(
+          (checkin) => checkin.membroDesafio?.desafio?.id === desafioId
+        );
+
+        const novoCronograma = {
+          dom: false,
+          seg: false,
+          ter: false,
+          qua: false,
+          qui: false,
+          sex: false,
+          sab: false,
+        };
+
+        checkinsDesseDesafio.forEach((checkin) => {
+          const dia = new Date(checkin.dataHoraCheckin).getDay();
+          if (dia === 0) novoCronograma.dom = true;
+          if (dia === 1) novoCronograma.seg = true;
+          if (dia === 2) novoCronograma.ter = true;
+          if (dia === 3) novoCronograma.qua = true;
+          if (dia === 4) novoCronograma.qui = true;
+          if (dia === 5) novoCronograma.sex = true;
+          if (dia === 6) novoCronograma.sab = true;
+        });
+
+        setCronograma(novoCronograma);
+      } catch (error) {
+        console.log("Erro ao carregar dados:", error);
+        setTimeline([]);
+      }
+    };
+
+    loadDados();
+  }, [userId, desafioId]);
+
+  // Desistir do desafio
+  const handleDesistir = async () => {
+    try {
+      await apiService.desistirDoDesafio(desafio.id, userId);
+      setFeedbackType("success");
+      setFeedbackMessage("Você desistiu do desafio.");
+      setShowFeedback(true);
     } catch (error) {
-      Alert.alert("Erro", "Não foi possível carregar o cronograma.");
+      setFeedbackType("error");
+      setFeedbackMessage(error.message || "Erro ao desistir do desafio.");
+      setShowFeedback(true);
     }
   };
 
-  const renderCronograma = () => {
-    const dias = [
-      { key: "dom", label: "Dom" },
-      { key: "seg", label: "Seg" },
-      { key: "ter", label: "Ter" },
-      { key: "qua", label: "Qua" },
-      { key: "qui", label: "Qui" },
-      { key: "sex", label: "Sex" },
-      { key: "sab", label: "Sab" },
-    ];
+  const calcularProgresso = (inicio, fim) => {
+    const dataInicio = new Date(inicio);
+    const dataFim = new Date(fim);
+    const hoje = new Date();
 
-    return (
-      <View style={styles.cronogramaContainer}>
-        {dias.map((dia) => (
-          <View key={dia.key} style={styles.diaContainer}>
-            <Text style={styles.diaLabel}>{dia.label}</Text>
-            <View
-              style={[
-                styles.diaIndicator,
-                cronograma[dia.key] ? styles.diaCompleto : styles.diaPendente,
-              ]}
-            >
-              {cronograma[dia.key] && <Text style={styles.checkIcon}>✓</Text>}
-            </View>
-          </View>
-        ))}
-      </View>
-    );
+    if (hoje < dataInicio) return 0;
+    if (hoje >= dataFim) return 100;
+
+    const total = dataFim - dataInicio;
+    const atual = hoje - dataInicio;
+
+    return Math.round((atual / total) * 100);
   };
 
-  if (loading || !desafio) {
+  const formatarData = (data) => {
+    if (!data) return "";
+    const parts = data.split ? data.split("-") : null;
+    if (parts && parts.length === 3) {
+      const dateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+      return dateObj.toLocaleDateString("pt-BR");
+    }
+    return new Date(data).toLocaleDateString("pt-BR");
+  };
+
+  const handleCheckin = () => {
+    if (!meuMembro) {
+      Alert.alert("Erro", "Membro não encontrado.");
+      return;
+    }
+
+    navigation.navigate("CheckInFlow", {
+      membroId: meuMembro.id,
+    });
+  };
+
+  const handleVerRanking = () => {
+    navigation.navigate("Ranking", { desafioId: desafio.id });
+  };
+
+  if (loading || !desafio || !meuMembro) {
     return (
-      <View style={styles.container}>
-        <Header
-          title="Carregando..."
-          showBackButton
-          onBackPress={() => navigation.goBack()}
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator
+          size="large"
+          color="#1DB954"
+          style={{ marginTop: 20 }}
         />
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Carregando detalhes...</Text>
-        </View>
+        <Text style={styles.loadingText}>Carregando detalhes...</Text>
       </View>
     );
   }
 
-  const formatarData = (dataString) => {
-    if (!dataString) return "";
-    const data = new Date(dataString);
-    const dia = String(data.getDate()).padStart(2, "0");
-    const mes = String(data.getMonth() + 1).padStart(2, "0");
-    const ano = data.getFullYear();
-    return `${dia}/${mes}/${ano}`;
-  };
-
   return (
     <View style={styles.container}>
       <Header
-        title="Acompanhar Desafios"
+        title="Acompanhar Desafio"
         showBackButton
         showShareButton
         onBackPress={() => navigation.goBack()}
-        onSharePress={confirmarDesistencia}
-        shareIconName="exit-to-app"
+        onSharePress={() => setShowModalDesistencia(true)}
+        shareIconName="logout"
       />
-
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.desafioHeader}>
-          <Image source={{ uri: desafio.imagem }} style={styles.desafioImage} />
-          <View style={styles.desafioInfo}>
-            <Text style={styles.desafioNome}>{desafio.nome}</Text>
-            <Text style={styles.desafioDescricao}>{desafio.descricao}</Text>
-          </View>
+          {desafio.urlFoto ? (
+            <View style={styles.imagemContainer}>
+              <Image
+                source={{ uri: desafio.urlFoto }}
+                style={styles.imagemDesafio}
+                resizeMode="cover"
+              />
+            </View>
+          ) : (
+            <View style={styles.imagemPlaceholder}>
+              <MaterialIcons name="fitness-center" size={64} color="#1DB954" />
+            </View>
+          )}
+          <Text style={styles.nomeDesafio}>{desafio.nome}</Text>
+          <Text style={styles.descricaoDesafio}>
+            {desafio.descricao || "Sem descrição cadastrada."}
+          </Text>
+        </View>
+        <ProgressBar
+          progresso={calcularProgresso(desafio.dataInicio, desafio.dataFim)}
+          posicao={minhaPosicao || "-"}
+        />
+
+        <View style={styles.statsRow}>
+          <StatsCard
+            icon={
+              <MaterialIcons name="sports-handball" size={24} color="#1DB954" />
+            }
+            title="Ofensiva"
+            value={meuMembro?.pontuacao?.diasConsecutivos || 0}
+          />
+          <StatsCard
+            icon={
+              <MaterialIcons name="emoji-events" size={24} color="#1DB954" />
+            }
+            title="Pontos"
+            value={meuMembro?.pontuacao?.pontuacao || 0}
+            style={{ marginLeft: 12 }}
+          />
         </View>
 
-        <View style={styles.progressContainer}>
-          <View style={styles.progressHeader}>
-            <Text style={styles.progressText}>
-              {calcularProgresso(desafio.dataInicio, desafio.dataFim)}%
-            </Text>
-            <View style={styles.posicaoContainer}>
-              <Text style={styles.posicaoText}>Posição: {desafio.posicao}</Text>
-              <Text style={styles.posicaoIcon}>🔥</Text>
-            </View>
-          </View>
-          <View style={styles.progressBar}>
-            <View
-              style={[
-                styles.progressFill,
-                {
-                  width: `${calcularProgresso(
-                    desafio.dataInicio,
-                    desafio.dataFim
-                  )}%`,
-                },
-              ]}
-            />
-          </View>
-        </View>
+        <Cronograma schedule={cronograma} />
 
-        <View style={styles.statsContainer}>
-          <View style={styles.ofensivaContainer}>
-            <View style={styles.ofensivaIcon}>
-              <Text style={styles.leafIcon}>🍃</Text>
-            </View>
-            <Text style={styles.ofensivaText}>Ofensiva</Text>
-            <Text style={styles.ofensivaDias}>
-              {desafio.diasRestantes} Dias
-            </Text>
-          </View>
+        <InfoCard
+          icon={
+            <MaterialIcons name="calendar-month" size={24} color="#1DB954" />
+          }
+          label="Início"
+          value={formatarData(desafio.dataInicio)}
+        />
+        <InfoCard
+          icon={
+            <MaterialIcons name="calendar-month" size={24} color="#1DB954" />
+          }
+          label="Fim"
+          value={formatarData(desafio.dataFim)}
+        />
+        <InfoCard
+          icon={<MaterialIcons name="groups" size={24} color="#1DB954" />}
+          label="Grupo"
+          value={desafio.grupos?.nome || "Sem grupo"}
+        />
+        <InfoCard
+          icon={<MaterialIcons name="attach-money" size={24} color="#1DB954" />}
+          label="Valor Aposta"
+          value={`R$ ${Number(desafio.valorAposta)?.toFixed(2) || "0,00"}`}
+        />
+        <InfoCard
+          icon={<MaterialIcons name="groups" size={24} color="#1DB954" />}
+          label="Membros Ativos"
+          value={`${
+            membros.filter((m) => m.status === "ATIVO").length
+          } participantes`}
+        />
 
-          <View style={styles.pontosContainer}>
-            <Text style={styles.pontosLabel}>
-              Pontos: {desafio.pontosGanhos}
-            </Text>
-          </View>
-        </View>
-
-        {renderCronograma()}
-
-        <View style={styles.infoContainer}>
-          <View style={styles.infoCard}>
-            <MaterialIcons name="event" size={24} color="#1DB954" />
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Período</Text>
-              <Text style={styles.infoValue}>
-                {formatarData(desafio.dataInicio)} até{" "}
-                {formatarData(desafio.dataFim)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoCard}>
-            <MaterialIcons name="groups" size={24} color="#1DB954" />
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Ativos</Text>
-              <Text style={styles.infoValue}>{desafio.ativos}</Text>
-            </View>
-          </View>
-
-          <View style={styles.infoCard}>
-            <MaterialIcons name="attach-money" size={24} color="#1DB954" />
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Valor da Aposta</Text>
-              <Text style={styles.infoValue}>
-                R$ {Number(desafio.valorAposta).toFixed(2)}
-              </Text>
-            </View>
-          </View>
-
-          <View style={styles.infoCard}>
-            <MaterialIcons name="card-giftcard" size={24} color="#1DB954" />
-            <View style={styles.infoTextContainer}>
-              <Text style={styles.infoLabel}>Recompensa Total</Text>
-              <Text style={styles.infoValue}>
-                R${" "}
-                {(Number(desafio.valorAposta) * Number(desafio.ativos)).toFixed(
+        <InfoCard
+          icon={<MaterialIcons name="attach-money" size={24} color="#1DB954" />}
+          label="Recompensa"
+          value={
+            desafio.valorAposta && membros?.length > 0
+              ? `R$ ${(Number(desafio.valorAposta) * membros.length).toFixed(
                   2
-                )}
-              </Text>
-            </View>
-          </View>
-        </View>
+                )}`
+              : "R$ 0,00"
+          }
+        />
+        <InfoCard
+          icon={<MaterialIcons name="person" size={24} color="#1DB954" />}
+          label="Criador"
+          value={desafio.criador?.nome || "Não informado"}
+        />
+        <InfoCard
+          icon={
+            <MaterialIcons name="business-center" size={24} color="#1DB954" />
+          }
+          label="Patrocinador"
+          value={desafio.patrocinador?.nome || "Sem patrocinador"}
+        />
 
-        {renderTimeline()}
+        <TimelineList timeline={timeline} />
 
-        <View style={styles.buttonsContainer}>
-          <ButtonDesafios
-            title="Ver Ranking"
-            onPress={handleVerRanking}
-            variant="outline"
-            style={styles.button}
-          />
-          <ButtonDesafios
-            title="Fazer Check-in"
-            onPress={handleCheckin}
-            loading={checkinLoading}
-            style={styles.button}
-          />
-        </View>
+        {timeline.length === 0 && (
+          <Text style={{ color: "#888", textAlign: "center", marginTop: 8 }}>
+            Nenhuma movimentação até agora.
+          </Text>
+        )}
+
+        <ButtonsGroup
+          onVerRanking={handleVerRanking}
+          onCheckin={handleCheckin}
+          loadingCheckin={checkinLoading}
+        />
       </ScrollView>
 
-      <View style={styles.bottomNav}>
-        <BottomNav active={"DesafiosScreen"} />
-      </View>
+      <BottomNav active="desafios" />
+
       <ModalConfirmacao
         visible={showModalDesistencia}
-        mensagem="Você tem certeza que deseja desistir deste desafio? Seu saldo será atualizado."
+        mensagem="Tem certeza que deseja desistir do desafio?"
         onCancel={() => setShowModalDesistencia(false)}
         onConfirm={() => {
           setShowModalDesistencia(false);
           handleDesistir();
         }}
       />
+
       <ModalFeedback
         visible={showFeedback}
         type={feedbackType}
@@ -475,7 +385,7 @@ export const DetalhesDesafios = ({ navigation, route }) => {
         onClose={() => {
           setShowFeedback(false);
           if (feedbackType === "success") {
-            navigation.goBack();
+            navigation.navigate("Home");
           }
         }}
       />
@@ -483,354 +393,70 @@ export const DetalhesDesafios = ({ navigation, route }) => {
   );
 };
 
-const colors = {
-  background: "#121212",
-  cardBackground: "#1E1E1E",
-  cardBackgroundAlt: "#333333",
-  primary: "#1DB954", // verde destaque
-  primaryDark: "#178C3F", // verde escuro para hover/borda
-  white: "#FFFFFF",
-  textPrimary: "#FFFFFF",
-  textSecondary: "#CCC",
-  textMuted: "#7A7A7A",
-  textLight: "#999999",
-  danger: "#F44336",
-  warning: "#FFD700",
-  shadow: "#000000",
-  border: "#444444",
-};
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: "#121212",
   },
-
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
   },
-
-  // HEADER DO DESAFIO
+  statsRow: {
+    flexDirection: "row",
+    marginBottom: 24,
+  },
+  loadingContainer: {
+    flex: 1,
+    backgroundColor: "#121212",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  loadingText: {
+    color: "#CCC",
+    marginTop: 12,
+  },
   desafioHeader: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  desafioImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 16,
-    marginRight: 16,
-  },
-  desafioInfo: {
-    flex: 1,
-  },
-  desafioNome: {
-    color: colors.textPrimary,
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  desafioDescricao: {
-    color: colors.primary,
-    fontSize: 14,
-    marginTop: 4,
-  },
-
-  // PROGRESSO
-  progressContainer: {
-    marginBottom: 24,
-  },
-  progressHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 8,
-  },
-  progressText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  posicaoContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-  },
-  posicaoText: {
-    color: colors.textPrimary,
-    fontSize: 14,
-  },
-  posicaoIcon: {
-    color: colors.primary,
-  },
-  progressBar: {
-    height: 16,
-    backgroundColor: colors.cardBackgroundAlt,
-    borderRadius: 8,
-    overflow: "hidden",
-  },
-  progressFill: {
-    height: "100%",
-    backgroundColor: colors.primary,
-    borderRadius: 8,
-  },
-
-  // STATS
-  statsContainer: {
-    flexDirection: "row",
-    gap: 12,
-    marginBottom: 24,
-  },
-  ofensivaContainer: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  ofensivaIcon: {
-    backgroundColor: colors.cardBackgroundAlt,
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  leafIcon: {
-    fontSize: 24,
-    color: colors.primary,
-  },
-  ofensivaText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  ofensivaDias: {
-    color: colors.textSecondary,
-    fontSize: 13,
-  },
-
-  pontosContainer: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  pontosLabel: {
-    color: colors.background,
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-
-  // CRONOGRAMA
-  cronogramaContainer: {
-    backgroundColor: colors.cardBackground,
-    borderRadius: 16,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
-  },
-  diaContainer: {
-    alignItems: "center",
-  },
-  diaLabel: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  diaIndicator: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  diaCompleto: {
-    backgroundColor: colors.primary,
-  },
-  diaPendente: {
-    backgroundColor: colors.border,
-  },
-  checkIcon: {
-    color: colors.background,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-
-  // INFO
-  infoContainer: {
-    marginVertical: 16,
-  },
-  infoCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#222222",
-    padding: 16,
+    backgroundColor: "#1e1e1e",
     borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: colors.shadow,
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 2 },
-  },
-  infoTextContainer: {
-    marginLeft: 12,
-  },
-  infoLabel: {
-    fontSize: 14,
-    color: colors.textMuted,
-    fontWeight: "600",
-  },
-  infoValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginTop: 2,
-  },
-  dataContainer: {
-    marginBottom: 8,
-  },
-  dataLabel: {
-    color: colors.textSecondary,
-    fontSize: 14,
-  },
-  dataText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  ativosContainer: {
-    marginBottom: 8,
-  },
-  ativosText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-  },
-  valorApostaContainer: {
-    marginBottom: 8,
-  },
-  valorRecompensaContainer: {
-    marginBottom: 8,
-  },
-  valorApostaText: {
-    color: colors.textPrimary,
-    fontSize: 16,
-  },
-  valorRecompensaText: {
-    color: colors.primary,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-
-  // TIMELINE
-  timelineContainer: {
-    marginBottom: 24,
-  },
-  timelineTitle: {
-    color: colors.textPrimary,
-    fontSize: 18,
-    fontWeight: "bold",
+    padding: 16,
+    alignItems: "center",
     marginBottom: 16,
   },
-  timelineLine: {
-    position: "absolute",
-    left: 24,
-    top: 50,
-    bottom: 0,
-    width: 2,
-    backgroundColor: colors.border,
-  },
-  timelineItem: {
-    flexDirection: "row",
-    marginBottom: 24,
-    alignItems: "flex-start",
-  },
-  timelinePoint: {
-    width: 50,
-    alignItems: "center",
-    marginRight: 12,
-  },
-  timelineDot: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginBottom: 4,
-  },
-  timelineDotCompleted: {
-    backgroundColor: colors.primary,
-  },
-  timelineDotActive: {
-    backgroundColor: colors.warning,
-  },
-  timelineDotPending: {
-    backgroundColor: colors.danger,
-  },
-  timelineTime: {
-    color: colors.textPrimary,
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  timelineContent: {
-    flex: 1,
-    backgroundColor: colors.cardBackground,
+
+  imagemContainer: {
+    width: "100%",
+    height: 180,
     borderRadius: 12,
-    padding: 12,
+    overflow: "hidden",
+    marginBottom: 12,
   },
-  participanteInfo: {
-    flexDirection: "row",
+
+  imagemDesafio: {
+    width: "100%",
+    height: "100%",
+  },
+
+  imagemPlaceholder: {
+    width: "100%",
+    height: 180,
+    borderRadius: 12,
+    backgroundColor: "#2a2a2a",
+    justifyContent: "center",
     alignItems: "center",
+    marginBottom: 12,
   },
-  participanteAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    marginRight: 12,
-  },
-  participanteTexto: {
-    flex: 1,
-  },
-  participanteNome: {
-    color: colors.textPrimary,
-    fontSize: 14,
+
+  nomeDesafio: {
+    fontSize: 20,
     fontWeight: "bold",
-  },
-  participanteDistancia: {
-    color: colors.primary,
-    fontSize: 12,
-  },
-  participanteStatus: {
-    color: colors.textSecondary,
-    fontSize: 11,
+    color: "#fff",
+    textAlign: "center",
   },
 
-  // BOTÕES
-  buttonsContainer: {
-    flexDirection: "row",
-    gap: 12,
-  },
-  button: {
-    flex: 1,
-  },
-
-  // BOTTOM NAV
-  bottomNav: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 80,
-    backgroundColor: colors.cardBackground,
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 20,
-    paddingBottom: 20,
+  descricaoDesafio: {
+    fontSize: 14,
+    color: "#ccc",
+    marginTop: 8,
+    textAlign: "center",
   },
 });
