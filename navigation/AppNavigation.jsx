@@ -24,6 +24,7 @@ import { EncontrarGruposScreen } from "../pages/EncontrarGruposScreen";
 import { CriarGrupoScreen } from "../pages/CriarGrupoScreen";
 import { ConfirmacaoCriacaoGrupoScreen } from "../pages/ConfirmacaoCriacaoGrupoScreen";
 import  GroupDetails  from "../pages/GroupDetailsScreen";
+import  EsqueciSenha  from "../pages/EsquecerSenha";
 
 const Stack = createStackNavigator();
 
@@ -85,6 +86,11 @@ export default function AppNavegation() {
         <Stack.Screen
           name="GroupDetails"
           component={GroupDetails}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="EsqueciSenha"
+          component={EsqueciSenha}
           options={{ headerShown: false }}
         />
       </Stack.Navigator>

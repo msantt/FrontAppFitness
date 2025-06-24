@@ -111,24 +111,30 @@ export const DetalhesDesafios = ({ navigation, route }) => {
           apiService.getCheckInsByUsuarioId(userId),
         ]);
 
+        // FILTRAR CHECK-INS DO DIA
         const hoje = new Date();
         const checkinsHoje = (checkinsDesafio || []).filter((checkin) => {
           if (!checkin.dataHoraCheckin) return false;
           const dataCheckin = new Date(checkin.dataHoraCheckin);
-
           return (
             dataCheckin.getDate() === hoje.getDate() &&
             dataCheckin.getMonth() === hoje.getMonth() &&
             dataCheckin.getFullYear() === hoje.getFullYear()
           );
         });
-
         setTimeline(checkinsHoje);
 
-        setRankingData(ranking || []);
+        // ORDENAR RANKING POR PONTUAÇÃO (do maior para o menor)
+        const rankingOrdenado = (ranking || []).sort((a, b) => {
+          const pontosA = a.pontuacao?.pontuacao || 0;
+          const pontosB = b.pontuacao?.pontuacao || 0;
+          return pontosB - pontosA;
+        });
+        setRankingData(rankingOrdenado);
 
-        if (ranking && ranking.length > 0) {
-          const index = ranking.findIndex(
+        // DEFINIR POSIÇÃO DO USUÁRIO NO RANKING
+        if (rankingOrdenado.length > 0) {
+          const index = rankingOrdenado.findIndex(
             (item) => item.usuarioId === userId || item.usuario?.id === userId
           );
 
@@ -139,6 +145,7 @@ export const DetalhesDesafios = ({ navigation, route }) => {
           }
         }
 
+        // CRONOGRAMA DA SEMANA
         const checkinsDesseDesafio = (checkinsUsuario || []).filter(
           (checkin) => checkin.membroDesafio?.desafio?.id === desafioId
         );
@@ -309,6 +316,12 @@ export const DetalhesDesafios = ({ navigation, route }) => {
           label="Fim"
           value={formatarData(desafio.dataFim)}
         />
+        <InfoCard
+          icon={<MaterialIcons name="category" size={24} color="#1DB954" />}
+          label="Categoria"
+          value={desafio.categoria?.nome || "Sem categoria"}
+        />
+
         <InfoCard
           icon={<MaterialIcons name="groups" size={24} color="#1DB954" />}
           label="Grupo"

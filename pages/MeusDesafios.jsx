@@ -185,7 +185,7 @@ export const DesafiosScreen = ({ navigation }) => {
   return (
     <View style={styles.container}>
       <Header
-        title="Bem-vindo aos Desafios"
+        title="Descobrir Desafios"
         subtitle="Clique em um desafio para conhecer mais"
       />
 

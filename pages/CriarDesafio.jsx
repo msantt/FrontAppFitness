@@ -187,10 +187,10 @@ export const CriarDesafios = ({ navigation }) => {
   };
 
   const formatDateToISO = (dateStr) => {
-    // Espera DD-MM-YYYY
     if (!dateStr) return "";
-    const [day, month, year] = dateStr.split("-");
-    return `${year}-${month}-${day}`;
+    const [day, month, year] = dateStr.split("/");
+    if (!day || !month || !year) return "";
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
   };
 
   const confirmarCriacao = () => {
@@ -251,6 +251,13 @@ export const CriarDesafios = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+  const hojeFormatado = () => {
+    const hoje = new Date();
+    const dia = String(hoje.getDate()).padStart(2, "0");
+    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
+    const ano = hoje.getFullYear();
+    return `${dia}/${mes}/${ano}`;
   };
 
   const renderInput = (
@@ -357,19 +364,20 @@ export const CriarDesafios = ({ navigation }) => {
           "Data de Início",
           formData.dataInicio,
           (text) => updateFormData("dataInicio", text),
-          "DD-MM-YYYY",
+          hojeFormatado(),
           "numeric",
           10,
-          "99-99-9999"
+          "99/99/9999"
         )}
+
         {renderInput(
           "Data de Término",
           formData.dataFim,
           (text) => updateFormData("dataFim", text),
-          "DD-MM-YYYY",
+          hojeFormatado(),
           "numeric",
           10,
-          "99-99-9999"
+          "99/99/9999"
         )}
 
         <DropdownModal

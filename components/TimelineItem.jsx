@@ -1,7 +1,47 @@
-import React from "react";
-import { View, Text, Image, StyleSheet } from "react-native";
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Modal,
+  TouchableOpacity,
+} from "react-native";
+import { getEnderecoFromLatLng } from "../services/geolocationService";
 
 export function TimelineItem({ item }) {
+  const [modalVisible, setModalVisible] = useState(false);
+  const [endereco, setEndereco] = useState(null);
+
+  useEffect(() => {
+    if (item.local) {
+      const [lat, lon] = item.local.split(",").map((s) => s.trim());
+      getEnderecoFromLatLng(lat, lon).then((res) => {
+        if (res) setEndereco(res);
+      });
+    }
+  }, [item.local]);
+
+  // Função para converter horário da Virginia para Brasil (fixo: UTC-4 para UTC-3)
+  function converterHorarioVirginiaParaBrasil(dataHoraStr) {
+    const offsetVirginia = 4 * 60; // Virginia: UTC-4 (horário de verão)
+    const offsetBrasil = 3 * 60;   // Brasil: UTC-3
+
+    // Interpretar string como UTC
+    const dataUtc = new Date(dataHoraStr + "Z");
+
+    // Ajustar para horário Virginia (subtrai 4 horas)
+    const dataVirginia = new Date(dataUtc.getTime() - offsetVirginia * 60000);
+
+    // Ajustar para horário Brasil (adiciona 3 horas)
+    const dataBrasil = new Date(dataVirginia.getTime() + offsetBrasil * 60000);
+
+    const horas = dataBrasil.getHours().toString().padStart(2, "0");
+    const minutos = dataBrasil.getMinutes().toString().padStart(2, "0");
+
+    return `${horas}:${minutos}`;
+  }
+
   const statusLower = item.status.toLowerCase();
   const dotStyles = [
     styles.timelineDot,
@@ -10,31 +50,72 @@ export function TimelineItem({ item }) {
     statusLower === "pendente" && styles.dotPending,
   ];
 
+  let horaFormatada = "";
+  if (item.dataHoraCheckin) {
+    try {
+      horaFormatada = converterHorarioVirginiaParaBrasil(item.dataHoraCheckin);
+    } catch {
+      horaFormatada = new Date(item.dataHoraCheckin).toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+    }
+  }
+
   return (
     <View style={styles.timelineItem}>
       <View style={styles.timelinePoint}>
         <View style={dotStyles} />
-        <Text style={styles.timelineTime}>
-          {new Date(item.dataHoraCheckin).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </Text>
+        <Text style={styles.timelineTime}>{horaFormatada}</Text>
       </View>
+
       <View style={styles.timelineContent}>
         <View style={styles.usuario}>
           <Image
-            source={{ uri: item.membroDesafio.usuario.avatar }}
+            source={{ uri: item.membroDesafio?.usuario?.avatar }}
             style={styles.avatar}
           />
           <View style={styles.textContainer}>
-            <Text style={styles.nome}>{item.membroDesafio.usuario.nome}</Text>
+            <Text style={styles.nome}>
+              {item.membroDesafio?.usuario?.nome ?? "Usuário"}
+            </Text>
             <Text style={styles.status}>
-              {item.status.charAt(0).toUpperCase() + item.status.slice(1).toLowerCase()}
+              {item.status.charAt(0).toUpperCase() +
+                item.status.slice(1).toLowerCase()}
             </Text>
           </View>
         </View>
+
+        {item.urlFoto && (
+          <TouchableOpacity
+            onPress={() => setModalVisible(true)}
+            style={styles.imageWrapper}
+          >
+            <Image source={{ uri: item.urlFoto }} style={styles.checkinImage} />
+          </TouchableOpacity>
+        )}
+
+        {item.local && <Text style={styles.location}>📍 {endereco || item.local}</Text>}
       </View>
+
+      <Modal
+        visible={modalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalContainer}
+          activeOpacity={1}
+          onPressOut={() => setModalVisible(false)}
+        >
+          <Image
+            source={{ uri: item.urlFoto }}
+            style={styles.modalImage}
+            resizeMode="contain"
+          />
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -74,12 +155,14 @@ const styles = StyleSheet.create({
   usuario: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 8,
   },
   avatar: {
     width: 40,
     height: 40,
     borderRadius: 20,
     marginRight: 12,
+    backgroundColor: "#333",
   },
   textContainer: { justifyContent: "center" },
   nome: {
@@ -89,5 +172,29 @@ const styles = StyleSheet.create({
   status: {
     color: "#CCC",
     fontSize: 11,
+  },
+  checkinImage: {
+    width: "100%",
+    height: 180,
+    borderRadius: 10,
+    marginTop: 8,
+  },
+  imageWrapper: {
+    overflow: "hidden",
+  },
+  location: {
+    color: "#888",
+    fontSize: 12,
+    marginTop: 6,
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalImage: {
+    width: "90%",
+    height: "80%",
   },
 });

@@ -2,8 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
 
 import AsyncStorage from "@react-native-async-storage/async-storage";
-
-import { useNavigation } from "@react-navigation/native";  // <-- importação do hook
+import { useNavigation } from "@react-navigation/native";
 
 import CustomButton from "./CustomButton";
 import { ModalFeedback } from "../components/ModalFeedback";
@@ -23,16 +22,15 @@ const ConfirmationStep = ({
   location,
   membroDesafio = null,
 }) => {
-  const navigation = useNavigation(); // <-- usa hook para ter navigation
+  const navigation = useNavigation();
 
   const [email, setEmail] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Estados para o modal de feedback
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
-  const [modalType, setModalType] = useState("success"); // success ou error
+  const [modalType, setModalType] = useState("success");
 
   useEffect(() => {
     const carregarEmailEUsuario = async () => {
@@ -48,7 +46,7 @@ const ConfirmationStep = ({
           setModalVisible(true);
         }
       } catch (error) {
-        setModalMessage("Não foi possível carregar os dados do perfil");
+        setModalMessage("Não foi possível carregar os dados do perfil.");
         setModalType("error");
         setModalVisible(true);
       } finally {
@@ -71,6 +69,22 @@ const ConfirmationStep = ({
       );
     });
   }
+  function getDataHoraBrasil() {
+    const now = new Date();
+    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
+    const brasilOffsetMs = -3 * 60 * 60 * 1000;
+    const brasilDate = new Date(utc + brasilOffsetMs);
+
+    const isoString = brasilDate.toISOString();
+
+    const [date, time] = isoString.split("T");
+    const [hora, resto] = time.split(".");
+    const microssegundos = resto
+      ? resto.replace("Z", "").padEnd(6, "0")
+      : "000000";
+
+    return `${date}T${hora}.${microssegundos}`;
+  }
 
   const handleConfirm = async () => {
     try {
@@ -91,39 +105,49 @@ const ConfirmationStep = ({
       let membroDesafioParaUsar = membroDesafio;
 
       if (!membroDesafioParaUsar) {
-        const membrosDesafio = await apiService.getMembrosPorUsuario(usuario.id);
+        const membrosDesafio = await apiService.getMembrosPorUsuario(
+          usuario.id
+        );
         if (!membrosDesafio || membrosDesafio.length === 0) {
-          throw new Error("Usuário não está cadastrado em nenhum desafio ativo.");
+          throw new Error(
+            "Usuário não está cadastrado em nenhum desafio ativo."
+          );
         }
-        membroDesafioParaUsar = membrosDesafio[0];
+        membroDesafioParaUsar = membrosDesafio[0].id;
       }
 
-      if (!membroDesafioParaUsar?.id) {
+      if (!membroDesafioParaUsar) {
         throw new Error("Membro do desafio inválido.");
       }
 
-      const urlFoto = await uploadImagemParaCloudinary(capturedPhoto);
-
+      const urlFoto = await uploadImagemParaCloudinary(capturedPhoto.uri);
+      
       const payload = {
-        membroDesafio: { id: membroDesafioParaUsar.id },
+        membroDesafio: { id: membroDesafioParaUsar },
         urlFoto,
         local: location
-          ? `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`
+          ? `${location.coords.latitude.toFixed(
+              4
+            )}, ${location.coords.longitude.toFixed(4)}`
           : "Local não disponível",
         status: "ATIVO",
+        dataHoraCheckin: getDataHoraBrasil(),
       };
+
+      console.log("Payload enviado:", payload);
+
+      console.log("Payload enviado:", payload);
 
       await apiService.salvarCheckIn(payload);
 
       setModalMessage("Seu check-in foi realizado com sucesso.");
       setModalType("success");
       setModalVisible(true);
-
     } catch (error) {
+      console.error("Erro no check-in:", error);
       setModalMessage(error.message || "Erro ao realizar check-in");
       setModalType("error");
       setModalVisible(true);
-      console.error("Erro no check-in:", error);
     }
   };
 
@@ -131,8 +155,8 @@ const ConfirmationStep = ({
     setModalVisible(false);
     if (modalType === "success") {
       if (onConfirm) onConfirm();
+      navigation.navigate("DesafiosScreen");
     }
-    navigation.navigate("DesafiosScreen");
   };
 
   if (loading) {
@@ -168,7 +192,9 @@ const ConfirmationStep = ({
             <Text style={styles.summaryLabel}>📍 Localização:</Text>
             <Text style={styles.summaryValue}>
               {location
-                ? `${location.coords.latitude.toFixed(4)}, ${location.coords.longitude.toFixed(4)}`
+                ? `${location.coords.latitude.toFixed(
+                    4
+                  )}, ${location.coords.longitude.toFixed(4)}`
                 : "Obtida"}
             </Text>
           </View>

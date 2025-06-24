@@ -12,6 +12,7 @@ import Input from "../components/Input";
 import Button from "../components/Button";
 import SocialButton from "../components/SocialButton";
 import BackgroundDefault from "../components/BackgroundDefault";
+import { useNavigation } from "@react-navigation/native";
 import TextLink from "../components/Links";
 import { apiService } from "../services/api";
 import { ModalFeedback } from "../components/ModalFeedback";
@@ -42,33 +43,30 @@ export function LoginScreen({ navigation }) {
   }, []);
 
   const handleLogin = async () => {
-    try {
-      const resultado = await apiService.login(email, senha);
-      console.log("Login realizado com sucesso:", resultado);
+    const resultado = await apiService.login(email, senha);
 
-      const { token } = resultado;
-      if (!token) {
-        throw new Error("Token não recebido da API");
-      }
-
-      await AsyncStorage.setItem("authToken", token);
-      await AsyncStorage.setItem("userEmail", email);
-
-      if (lembrar) {
-        await AsyncStorage.setItem("loginEmailLembrado", email);
-        await AsyncStorage.setItem("loginSenhaLembrada", senha);
-      } else {
-        await AsyncStorage.removeItem("loginEmailLembrado");
-        await AsyncStorage.removeItem("loginSenhaLembrada");
-      }
-
-      navigation.navigate("Home");
-    } catch (error) {
+    if (resultado.error) {
       setFeedbackType("error");
-      setFeedbackMessage("Email ou Senha Inválidos!");
+      setFeedbackMessage(resultado.error);
       setShowFeedback(true);
+      return;
     }
+    const { token } = resultado;
+
+    await AsyncStorage.setItem("authToken", token);
+    await AsyncStorage.setItem("userEmail", email);
+
+    if (lembrar) {
+      await AsyncStorage.setItem("loginEmailLembrado", email);
+      await AsyncStorage.setItem("loginSenhaLembrada", senha);
+    } else {
+      await AsyncStorage.removeItem("loginEmailLembrado");
+      await AsyncStorage.removeItem("loginSenhaLembrada");
+    }
+
+    navigation.navigate("Home");
   };
+
   return (
     <BackgroundDefault>
       <View style={styles.screen}>
@@ -133,7 +131,10 @@ export function LoginScreen({ navigation }) {
           <Button title="Entrar" onPress={handleLogin} />
         </View>
 
-        <TextLink style={styles.link} url={"https://youtube.com"}>
+        <TextLink
+          style={styles.link}
+          onPress={() => navigation.navigate("EsqueciSenha")}
+        >
           Esqueceu a senha?
         </TextLink>
 
@@ -171,7 +172,7 @@ export function LoginScreen({ navigation }) {
             Ainda não possui conta?{" "}
           </TextComponent>
           <TouchableOpacity
-            onPress={() => navigation.navigate("SignUpScreen1")}
+            onPress={() => navigation.navigate("SignUpScreen4")}
           >
             <Text style={styles.footerLink}>Cadastre-se</Text>
           </TouchableOpacity>

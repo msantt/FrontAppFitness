@@ -15,6 +15,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { apiService } from "../services/api";
 import { Header } from "../components/Header";
+import { BottomNav } from "../components/BottomNav";
+import { ModalConfirmacao } from "../components/ModalConfirm";
 
 export default function GroupDetails({ route, navigation }) {
   const { grupoId } = route.params;
@@ -26,6 +28,9 @@ export default function GroupDetails({ route, navigation }) {
   const [grupo, setGrupo] = useState(null);
   const [membros, setMembros] = useState([]);
   const [desafios, setDesafios] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [desafioIdSelecionado, setDesafioIdSelecionado] = useState(null);
+  const [mensagemModal, setMensagemModal] = useState("");
 
   const loadUsuario = async () => {
     try {
@@ -85,24 +90,35 @@ export default function GroupDetails({ route, navigation }) {
       if (isMembro) {
         navigation.navigate("DetalhesDesafios", { desafioId });
       } else {
-        Alert.alert(
-          "Atenção",
-          "Você não é membro deste desafio. Deseja participar?",
-          [
-            { text: "Cancelar", style: "cancel" },
-            {
-              text: "Participar",
-              onPress: () =>
-                navigation.navigate("ParticiparDesafio", { desafioId }),
-            },
-          ]
-        );
+        setMensagemModal("Você não é membro deste desafio. Deseja participar?");
+        setDesafioIdSelecionado(desafioId);
+        setModalVisible(true);
       }
     } catch (error) {
-      console.log("Erro ao verificar membros do desafio:", error);
-      Alert.alert("Erro", "Não foi possível verificar sua participação.");
+      console.error("Erro ao verificar membros do desafio:", error);
+      setMensagemModal("Erro ao verificar sua participação. Tente novamente.");
+      setModalVisible(true);
     }
   };
+
+  const handleConfirmarParticipacao = () => {
+    setModalVisible(false);
+    if (desafioIdSelecionado) {
+      navigation.navigate("ParticiparDesafio", {
+        desafioId: desafioIdSelecionado,
+      });
+    }
+  };
+
+  const handleCancelar = () => {
+    setModalVisible(false);
+    setDesafioIdSelecionado(null);
+  };
+
+  const handleCreateDesafio = () => {
+    navigation.navigate("CriarDesafios", { grupoId });
+  };
+
   const getMembroDoUsuarioNoGrupo = () => {
     return membros.find((m) => m.usuario?.id === userId);
   };
@@ -221,6 +237,20 @@ export default function GroupDetails({ route, navigation }) {
           )}
         </View>
       </ScrollView>
+
+      {/* Botão fixo flutuante */}
+      <TouchableOpacity style={styles.fab} onPress={handleCreateDesafio}>
+        <Text style={styles.fabIcon}>+</Text>
+      </TouchableOpacity>
+      <View style={styles.bottomNav}>
+        <BottomNav active="EncontrarGruposScreen" />
+      </View>
+      <ModalConfirmacao
+        visible={modalVisible}
+        mensagem={mensagemModal}
+        onConfirm={handleConfirmarParticipacao}
+        onCancel={handleCancelar}
+      />
     </SafeAreaView>
   );
 }
@@ -231,7 +261,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#121212",
   },
   scrollContent: {
-    padding: 16,
+    padding: 20,
+    paddingBottom: 140, // espaço para botão flutuante
   },
   loadingContainer: {
     flex: 1,
@@ -242,6 +273,7 @@ const styles = StyleSheet.create({
   loadingText: {
     color: "#CCC",
     marginTop: 12,
+    fontSize: 16,
   },
   errorText: {
     color: "#FF6B6B",
@@ -253,18 +285,24 @@ const styles = StyleSheet.create({
 
   // Header do Grupo
   groupHeader: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#222",
+    borderRadius: 16,
+    padding: 20,
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 6,
   },
   imagemContainer: {
     width: "100%",
-    height: 180,
-    borderRadius: 12,
+    height: 200,
+    borderRadius: 16,
     overflow: "hidden",
-    marginBottom: 12,
+    marginBottom: 16,
+    backgroundColor: "#2a2a2a",
   },
   imagemGrupo: {
     width: "100%",
@@ -273,60 +311,67 @@ const styles = StyleSheet.create({
   imagemPlaceholder: {
     width: "100%",
     height: "100%",
-    backgroundColor: "#2a2a2a",
     justifyContent: "center",
     alignItems: "center",
   },
   nomeGrupo: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#fff",
     textAlign: "center",
   },
   descricaoGrupo: {
-    fontSize: 14,
-    color: "#ccc",
+    fontSize: 15,
+    color: "#bbb",
     marginTop: 8,
     textAlign: "center",
+    lineHeight: 20,
   },
   groupPrivacy: {
     color: "#1DB954",
-    fontSize: 13,
-    marginTop: 6,
-    fontWeight: "600",
+    fontSize: 14,
+    marginTop: 10,
+    fontWeight: "700",
   },
 
   // Cards
   card: {
-    backgroundColor: "#1e1e1e",
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 20,
+    backgroundColor: "#222",
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    shadowColor: "#000",
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 5,
   },
   sectionTitle: {
     color: "#1DB954",
     fontWeight: "700",
-    fontSize: 18,
-    marginBottom: 12,
+    fontSize: 20,
+    marginBottom: 16,
     letterSpacing: 0.5,
   },
 
   // Membros
   memberItem: {
     alignItems: "center",
-    marginRight: 20,
-    width: 70,
+    marginRight: 24,
+    width: 80,
   },
   memberAvatar: {
-    width: 65,
-    height: 65,
-    borderRadius: 32.5,
+    width: 75,
+    height: 75,
+    borderRadius: 37.5,
     backgroundColor: "#555",
+    borderWidth: 2,
+    borderColor: "#1DB954",
   },
   memberName: {
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: "500",
+    marginTop: 8,
+    fontSize: 14,
+    fontWeight: "600",
     color: "#fff",
     textAlign: "center",
   },
@@ -335,48 +380,72 @@ const styles = StyleSheet.create({
   timelineItem: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 14,
+    marginBottom: 18,
   },
   timelineBullet: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
+    width: 14,
+    height: 14,
+    borderRadius: 7,
     backgroundColor: "#1DB954",
-    marginTop: 8,
-    marginRight: 16,
+    marginTop: 6,
+    marginRight: 20,
   },
   timelineContent: {
     flex: 1,
   },
   timelineText: {
-    fontSize: 15,
-    fontWeight: "500",
+    fontSize: 17,
+    fontWeight: "600",
     color: "#E0E0E0",
-    lineHeight: 20,
+    lineHeight: 24,
   },
   timelineDate: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "400",
-    color: "#888",
-    marginTop: 3,
+    color: "#aaa",
+    marginTop: 4,
   },
   emptyText: {
     fontStyle: "italic",
     color: "#888",
-    fontSize: 14,
+    fontSize: 15,
     textAlign: "center",
-    marginTop: 12,
+    marginTop: 16,
+  },
+  fab: {
+    position: "absolute",
+    right: 20,
+    bottom: 100,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#1DB954",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
+  },
+  fabIcon: {
+    color: "#000",
+    fontSize: 24,
+    fontWeight: "bold",
   },
 
-  // Botão sair
+  // Botão sair (caso precise)
   exitButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     backgroundColor: "#FF3B30",
-    borderRadius: 8,
+    borderRadius: 10,
+    alignSelf: "center",
+    marginTop: 10,
   },
   exitButtonText: {
     color: "#fff",
-    fontWeight: "600",
+    fontWeight: "700",
+    fontSize: 14,
   },
 });

@@ -24,8 +24,16 @@ export const Ranking = ({ navigation, route }) => {
     try {
       console.log("Desafio ID:", desafioId);
       const data = await apiService.getRankingByDesafioId(desafioId);
-      console.log("Ranking Data:", data);
-      setRankingData(data || []);
+
+      // Ordenar por pontuação (do maior para o menor)
+      const rankingOrdenado = (data || []).sort((a, b) => {
+        const pontosA = a.pontuacao?.pontuacao || 0;
+        const pontosB = b.pontuacao?.pontuacao || 0;
+        return pontosB - pontosA;
+      });
+
+      console.log("Ranking Ordenado:", rankingOrdenado);
+      setRankingData(rankingOrdenado);
     } catch (error) {
       Alert.alert("Erro", "Não foi possível carregar o ranking");
     } finally {
@@ -103,7 +111,9 @@ export const Ranking = ({ navigation, route }) => {
         <View style={styles.rankingInfo}>
           <Text style={styles.rankingName}>{usuario.nome || "-"}</Text>
           <Text style={styles.rankingPoints}>
-            {pontuacao.pontuacao != null ? `${pontuacao.pontuacao} pts` : "- pts"}
+            {pontuacao.pontuacao != null
+              ? `${pontuacao.pontuacao} pts`
+              : "- pts"}
           </Text>
           <View style={styles.rankingConsecutivos}>
             <Text style={styles.rankingConsecutivosText}>
@@ -157,9 +167,9 @@ export const Ranking = ({ navigation, route }) => {
               <Text style={styles.rankingTitle}>Ranking Geral</Text>
 
               {rankingData.length > 3 ? (
-                rankingData.slice(3).map((item, index) =>
-                  renderRankingItem(item, index)
-                )
+                rankingData
+                  .slice(3)
+                  .map((item, index) => renderRankingItem(item, index))
               ) : (
                 <Text style={{ color: "#FFF", textAlign: "center" }}>
                   Nenhum dado além do pódio.

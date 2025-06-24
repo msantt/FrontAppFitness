@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -17,6 +17,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ModalFeedback } from "../components/ModalFeedback";
 import { MaterialIcons } from "@expo/vector-icons";
 import DropdownModal from "../components/Modal";
+import { ModalConfirmacao } from "../components/ModalConfirm"; // Import do modal de confirmação
 
 const { width } = Dimensions.get("window");
 
@@ -34,7 +35,6 @@ const objetivosOptions = [
   { id: "MANUTENCAO_DO_CORPO", nome: "Manutenção do corpo" },
   { id: "REEDUCACAO_ALIMENTAR_E_TREINO", nome: "Reeducação alimentar e treino" },
 ];
-
 
 const formatCurrency = (value) => {
   const cleanValue = value.replace(/\D/g, "");
@@ -66,6 +66,8 @@ export const Perfil = ({ navigation }) => {
 
   const [email, setEmail] = useState("");
 
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // controla modal de confirmação de saída
+
   useEffect(() => {
     const carregarEmailEUsuario = async () => {
       try {
@@ -79,7 +81,11 @@ export const Perfil = ({ navigation }) => {
           setFeedbackType("error");
           setFeedbackMessage("Email não encontrado. Faça login novamente.");
           setFeedbackVisible(true);
-          navigation.navigate("LoginScreen");
+          // Redireciona para login, limpando pilha
+          navigation.reset({
+            index: 0,
+            routes: [{ name: "LoginScreen" }],
+          });
         }
       } catch (error) {
         setFeedbackType("error");
@@ -94,30 +100,29 @@ export const Perfil = ({ navigation }) => {
   }, []);
 
   const handleSalvarEdicao = async () => {
-  try {
-    setLoading(true);
-    const usuarioAtualizado = await apiService.atualizarUsuario(usuario, dadosEditados);
-    setUsuario(usuarioAtualizado);
-    setEditando(false);
+    try {
+      setLoading(true);
+      const usuarioAtualizado = await apiService.atualizarUsuario(usuario, dadosEditados);
+      setUsuario(usuarioAtualizado);
+      setEditando(false);
 
-    // Atualizar email no AsyncStorage caso tenha mudado
-    if (dadosEditados.email && dadosEditados.email !== email) {
-      await AsyncStorage.setItem("userEmail", dadosEditados.email);
-      setEmail(dadosEditados.email);
+      // Atualizar email no AsyncStorage caso tenha mudado
+      if (dadosEditados.email && dadosEditados.email !== email) {
+        await AsyncStorage.setItem("userEmail", dadosEditados.email);
+        setEmail(dadosEditados.email);
+      }
+
+      setFeedbackType("success");
+      setFeedbackMessage("Perfil atualizado com sucesso!");
+      setFeedbackVisible(true);
+    } catch (error) {
+      setFeedbackType("error");
+      setFeedbackMessage("Não foi possível atualizar o perfil");
+      setFeedbackVisible(true);
+    } finally {
+      setLoading(false);
     }
-
-    setFeedbackType("success");
-    setFeedbackMessage("Perfil atualizado com sucesso!");
-    setFeedbackVisible(true);
-  } catch (error) {
-    setFeedbackType("error");
-    setFeedbackMessage("Não foi possível atualizar o perfil");
-    setFeedbackVisible(true);
-  } finally {
-    setLoading(false);
-  }
-};
-
+  };
 
   const mostrarFeedback = (tipo, mensagem) => {
     setFeedbackType(tipo);
@@ -252,6 +257,19 @@ export const Perfil = ({ navigation }) => {
         </View>
       </Modal>
     );
+  };
+
+  const handleLogout = async () => {
+    // Limpa o AsyncStorage e redireciona para LoginScreen, limpando pilha
+    try {
+      await AsyncStorage.removeItem("userEmail");
+    } catch (e) {
+      console.warn("Erro ao remover userEmail do AsyncStorage:", e);
+    }
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "LoginScreen" }],
+    });
   };
 
   if (loading || !usuario) {
@@ -396,11 +414,20 @@ export const Perfil = ({ navigation }) => {
               />
             </View>
           ) : (
-            <Button
-              title="Editar Perfil"
-              onPress={() => setEditando(true)}
-              variant="secondary"
-            />
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <Button
+                title="Editar Perfil"
+                onPress={() => setEditando(true)}
+                variant="secondary"
+                style={{ flex: 1 }}
+              />
+              <Button
+                title="Sair"
+                onPress={() => setShowLogoutConfirm(true)}
+                variant="outline"
+                style={{ flex: 1 }}
+              />
+            </View>
           )}
         </View>
       </ScrollView>
@@ -408,6 +435,17 @@ export const Perfil = ({ navigation }) => {
       <BottomNav active={"Perfil"} />
       {renderModalTransacao("deposito")}
       {renderModalTransacao("saque")}
+
+      {/* Modal de confirmação de saída */}
+      <ModalConfirmacao
+        visible={showLogoutConfirm}
+        mensagem="Tem certeza que deseja sair?"
+        onConfirm={() => {
+          setShowLogoutConfirm(false);
+          handleLogout();
+        }}
+        onCancel={() => setShowLogoutConfirm(false)}
+      />
 
       <ModalFeedback
         visible={feedbackVisible}
