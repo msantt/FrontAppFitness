@@ -13,14 +13,14 @@ import { useNavigation } from "@react-navigation/native";
 import { Header } from "../components/Header";
 import { DesafioCard } from "../components/DesafioCard";
 import { BottomNav } from "../components/BottomNav";
-import TextComponent from "../components/Text";
+import TextComponent from "../components/Text"; // Assuming this is a custom text component for styling
 import { apiService } from "../services/api";
 import { Cronograma } from "../components/Cronograma";
 
 export function HomeScreen() {
   const navigation = useNavigation();
 
-  // Estados do usuário
+  // User States
   const [userId, setUserId] = useState(null);
   const [userName, setUserName] = useState("");
   const [userPhoto, setUserPhoto] = useState("");
@@ -28,7 +28,7 @@ export function HomeScreen() {
   const [ofensiva, setOfensiva] = useState(0);
   const [ultimosCheckins, setUltimosCheckins] = useState([]);
 
-  // Estado do cronograma
+  // Schedule State
   const [cronogramaUltimosCheckins, setCronogramaUltimosCheckins] = useState({
     dom: false,
     seg: false,
@@ -39,26 +39,26 @@ export function HomeScreen() {
     sab: false,
   });
 
-  const [myChallenges, setMyChallenges] = useState([]); // array de objetos de desafio
+  const [myChallenges, setMyChallenges] = useState([]); // array of challenge objects
   const [recommendedChallenges, setRecommendedChallenges] = useState([]);
 
-  // Estados de controle
+  // Control States
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [errorMsg, setErrorMsg] = useState(null);
-  const [isDataLoaded, setIsDataLoaded] = useState(false); // controla exibição de loading inicial
+  const [isDataLoaded, setIsDataLoaded] = useState(false); // controls initial loading display
 
-  // Função para carregar dados do usuário e retornar o ID
+  // Function to load user data and return ID
   const loadUsuario = useCallback(async () => {
     try {
       const email = await AsyncStorage.getItem("userEmail");
       if (!email) {
-        throw new Error("Usuário não encontrado no armazenamento local");
+        throw new Error("User not found in local storage");
       }
 
       const usuario = await apiService.getUsuarioByEmail(email);
       if (!usuario || !usuario.id) {
-        throw new Error("Usuário inválido retornado pela API");
+        throw new Error("Invalid user returned by API");
       }
 
       setUserId(usuario.id);
@@ -67,7 +67,7 @@ export function HomeScreen() {
       setErrorMsg(null);
       return usuario.id;
     } catch (error) {
-      setErrorMsg(`Erro ao carregar usuário: ${error.message}`);
+      setErrorMsg(`Error loading user: ${error.message}`);
       setUserId(null);
       setUserName("");
       setUserPhoto("");
@@ -83,7 +83,10 @@ export function HomeScreen() {
       try {
         const membro = await apiService.getMembroDesafioPorId(id);
         membros.push(membro);
-      } catch {}
+      } catch (e) {
+        // console.warn(`Failed to get membroDesafio for ID ${id}:`, e);
+        // Continue to the next ID even if one fails
+      }
     }
     return membros;
   }
@@ -124,6 +127,7 @@ export function HomeScreen() {
         const dia = new Date(checkin.dataHoraCheckin).getDay();
         novoCronograma[diasSemana[dia]] = true;
       });
+
       const datasUnicas = Array.from(
         new Set(
           checkins.map((c) => {
@@ -136,26 +140,38 @@ export function HomeScreen() {
         .map((time) => new Date(time))
         .sort((a, b) => a - b);
 
-      let sequenciaAtual = 1;
-      let maiorSequencia = 1;
-      for (let i = 1; i < datasUnicas.length; i++) {
-        const anterior = datasUnicas[i - 1];
-        const atual = datasUnicas[i];
-        const diffDias = Math.round((atual - anterior) / (1000 * 60 * 60 * 24));
-        if (diffDias === 1) {
-          sequenciaAtual++;
-        } else {
-          sequenciaAtual = 1;
+      let maiorSequencia = 0;
+
+      if (datasUnicas.length > 0) {
+        let sequenciaAtual = 1;
+        maiorSequencia = 1;
+
+        for (let i = 1; i < datasUnicas.length; i++) {
+          const anterior = datasUnicas[i - 1];
+          const atual = datasUnicas[i];
+          const diffDias = Math.round(
+            (atual - anterior) / (1000 * 60 * 60 * 24)
+          );
+
+          if (diffDias === 1) {
+            sequenciaAtual++;
+          } else {
+            sequenciaAtual = 1;
+          }
+
+          if (sequenciaAtual > maiorSequencia) {
+            maiorSequencia = sequenciaAtual;
+          }
         }
-        if (sequenciaAtual > maiorSequencia) {
-          maiorSequencia = sequenciaAtual;
-        }
+      } else {
+        maiorSequencia = 0;
       }
 
-      setPontos(totalPontos);
       setOfensiva(maiorSequencia);
+      setPontos(totalPontos);
       setCronogramaUltimosCheckins(novoCronograma);
-    } catch {
+    } catch (error) {
+      console.error("Error loading last check-ins:", error);
       setUltimosCheckins([]);
       setCronogramaUltimosCheckins({
         dom: false,
@@ -167,17 +183,22 @@ export function HomeScreen() {
         sab: false,
       });
       setOfensiva(0);
+      setPontos(0);
+      setErrorMsg("Error loading check-in data.");
     }
   }, []);
+
   const loadChallenges = useCallback(
     async (uidParam) => {
       const uid = uidParam ?? userId;
-      if (!uid) return;
+      if (!uid) return; // Ensure userId is available
+
+      setLoading(true);
+      setErrorMsg(null);
       try {
-        setLoading(true);
-        setErrorMsg(null);
+        // Load "My Challenges"
         const meus = await apiService.getDesafiosByUsuario(uid);
-        let meusArrayRaw = Array.isArray(meus) ? meus : meus?.data || [];
+        const meusArrayRaw = Array.isArray(meus) ? meus : meus?.data || [];
         const meusArrayAtivos = meusArrayRaw.filter(
           (m) => m.status === "ATIVO"
         );
@@ -186,61 +207,92 @@ export function HomeScreen() {
           .filter((d) => d != null && d.status === "ATIVO");
 
         setMyChallenges(meusDesafiosExtraidos);
+
+        // Load "Recommended Challenges"
         const recomendar = await apiService.getDesafios();
-        console.log("Desafios Recomendados (API raw):", recomendar);
         const recArrayRaw = Array.isArray(recomendar)
           ? recomendar
           : recomendar?.data || [];
         setRecommendedChallenges(recArrayRaw);
+
+        // Load latest check-ins (which also updates points and offensive)
         await loadUltimosCheckins(uid);
       } catch (error) {
-        console.error("Erro loadChallenges:", error);
-        setErrorMsg("Erro ao carregar desafios. Tente novamente mais tarde.");
+        console.error("Error loading challenges:", error);
+        setErrorMsg("Error loading challenges. Please try again later.");
         setMyChallenges([]);
         setRecommendedChallenges([]);
+        setPontos(0);
+        setOfensiva(0);
+        setCronogramaUltimosCheckins({
+          dom: false,
+          seg: false,
+          ter: false,
+          qua: false,
+          qui: false,
+          sex: false,
+          sab: false,
+        });
       } finally {
         setLoading(false);
         setIsDataLoaded(true);
       }
     },
-    [userId, loadUltimosCheckins]
+    [userId, loadUltimosCheckins] // Depend on userId and loadUltimosCheckins
   );
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
+    // Reset dataLoaded state to show loading indicator if desired during refresh
     setIsDataLoaded(false);
     try {
       const id = await loadUsuario();
       if (id) {
         await loadChallenges(id);
+      } else {
+        // If user ID not found after refresh, still set data loaded to false
+        setIsDataLoaded(true);
       }
     } catch (e) {
-      console.warn("Erro no refresh:", e);
+      console.warn("Error during refresh:", e);
+      setErrorMsg("Failed to refresh data.");
+      setIsDataLoaded(true);
     }
     setRefreshing(false);
-  }, [loadUsuario, loadChallenges]);
+  }, [loadUsuario, loadChallenges]); // Dependencies for onRefresh
 
+  // Initial data load effect
   useEffect(() => {
-    (async () => {
-      setIsDataLoaded(false);
+    const initializeData = async () => {
+      setIsDataLoaded(false); // Start with loading indicator
       const id = await loadUsuario();
       if (id) {
         await loadChallenges(id);
       } else {
-        setIsDataLoaded(true);
+        setIsDataLoaded(true); // If no user, stop loading and show empty state/error
       }
-    })();
-  }, [loadUsuario, loadChallenges]);
+    };
+    initializeData();
+  }, [loadUsuario, loadChallenges]); // Dependencies for initial data load
 
   const handleChallengePress = useCallback(
     (desafio) => {
-      navigation.navigate("DetalhesDesafios", { desafioId: desafio.id });
+      // Check if user is a member of the challenge
+      const isMember = myChallenges.some((d) => d.id === desafio.id);
+
+      if (isMember) {
+        navigation.navigate("DetalhesDesafios", { desafioId: desafio.id });
+      } else {
+        navigation.navigate("ParticiparDesafio", { desafioId: desafio.id });
+      }
     },
-    [navigation]
+    [navigation, myChallenges]
   );
+
   const handleExploreChallengesPress = useCallback(() => {
     navigation.navigate("DesafiosScreen");
   }, [navigation]);
+
   const handleMeusDesafiosPress = useCallback(() => {
     navigation.navigate("DesafiosScreen");
   }, [navigation]);
@@ -248,7 +300,7 @@ export function HomeScreen() {
   const renderDesafiosSection = useCallback(
     (title, desafiosList, buttonLabel, onButtonPress) => {
       if (!desafiosList || desafiosList.length === 0) {
-        return null;
+        return null; // Don't render section if no challenges
       }
       return (
         <View style={styles.section}>
@@ -289,6 +341,7 @@ export function HomeScreen() {
     [handleChallengePress]
   );
 
+  // Show a full-screen loading indicator initially
   if (!isDataLoaded) {
     return (
       <View style={styles.container}>
@@ -317,11 +370,11 @@ export function HomeScreen() {
             refreshing={refreshing}
             onRefresh={onRefresh}
             tintColor="#00D95F"
-            colors={["#00D95F"]}
+            colors={["#00D95F"]} // For Android
           />
         }
       >
-        {/* Container de ofensiva e pontos lado a lado */}
+        {/* Offensive and Points Container */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Ofensiva</Text>
@@ -333,19 +386,19 @@ export function HomeScreen() {
           </View>
         </View>
 
-        {/* Cronograma dos últimos check-ins */}
+        {/* Latest Check-ins Schedule */}
         <View style={styles.cronogramaContainer}>
           <Cronograma schedule={cronogramaUltimosCheckins} />
         </View>
 
-        {/* Mensagem de erro, se houver */}
+        {/* Error Message, if any */}
         {errorMsg && (
           <View style={styles.errorContainer}>
             <Text style={styles.errorText}>{errorMsg}</Text>
           </View>
         )}
 
-        {/* Seção “Meus Desafios” */}
+        {/* "My Challenges" Section */}
         {renderDesafiosSection(
           "Meus Desafios",
           myChallenges,
@@ -353,7 +406,7 @@ export function HomeScreen() {
           handleMeusDesafiosPress
         )}
 
-        {/* Seção “Descobrir” / recomendados */}
+        {/* "Discover" / Recommended Challenges Section */}
         {renderDesafiosSection(
           "Descobrir",
           recommendedChallenges,
@@ -370,96 +423,99 @@ export function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#121212",
+    backgroundColor: "#121212", // Dark background for minimalist feel
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
-    paddingBottom: 120,
+    paddingVertical: 24, // Added vertical padding
+    paddingHorizontal: 20,
+    paddingBottom: 120, // Space for BottomNav
   },
 
-  // Estatísticas lado a lado
+  // Side-by-side Statistics
   statsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingHorizontal: 20,
-    marginVertical: 24,
-    gap: 20,
+    marginHorizontal: -5, // Compensate for inner padding if needed, or adjust padding directly
+    marginBottom: 32, // More space below stats
+    gap: 16, // Space between stat boxes
   },
   statBox: {
     flex: 1,
-    backgroundColor: "#1E1E1E",
-    borderRadius: 16,
-    paddingVertical: 20,
-    paddingHorizontal: 24,
+    backgroundColor: "#1E1E1E", // Slightly lighter dark for contrast
+    borderRadius: 12, // Slightly less rounded for a cleaner look
+    paddingVertical: 18, // Reduced padding
+    paddingHorizontal: 20,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#00D95F",
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
+    shadowColor: "#00D95F", // Green glow
+    shadowOffset: { width: 0, height: 4 }, // Subtle shadow downwards
+    shadowOpacity: 0.3, // Softer shadow
     shadowRadius: 8,
-    elevation: 8,
+    elevation: 6, // Android shadow
   },
   statLabel: {
-    color: "#8F8F8F",
-    fontSize: 15,
+    color: "#8F8F8F", // Muted grey for labels
+    fontSize: 14, // Slightly smaller font
     fontWeight: "600",
-    marginBottom: 8,
-    letterSpacing: 1,
+    marginBottom: 6, // Reduced margin
+    letterSpacing: 0.8, // Reduced letter spacing
     textTransform: "uppercase",
   },
   statValue: {
-    color: "#00D95F",
-    fontSize: 28,
+    color: "#00D95F", // Bright green for values
+    fontSize: 30, // Larger for emphasis
     fontWeight: "bold",
   },
 
   // Cronograma
   cronogramaContainer: {
-    marginHorizontal: 5,
+    marginHorizontal: 0, // Align with other content
     marginBottom: 32,
     backgroundColor: "#1E1E1E",
-    padding: 20,
-    borderRadius: 16,
+    padding: 18, // Slightly reduced padding
+    borderRadius: 12,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
+    shadowOpacity: 0.25, // Softer shadow
+    shadowRadius: 6,
+    elevation: 4,
   },
 
-  // Seções de desafios
+  // Challenge Sections
   section: {
-    marginBottom: 36,
+    marginBottom: 36, // Increased spacing between sections
   },
   sectionTitleContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 18,
-    paddingHorizontal: 8,
+    marginBottom: 16, // Reduced margin
+    paddingHorizontal: 0, // Align with content
   },
   sectionTitle: {
-    fontSize: 22,
+    fontSize: 20, // Slightly smaller
     fontWeight: "700",
     color: "#FFFFFF",
-    letterSpacing: 0.6,
+    letterSpacing: 0.5, // Reduced letter spacing
   },
   seeAllButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 10,
+    paddingVertical: 4, // Smaller touch area
+    paddingHorizontal: 8,
   },
   seeAllText: {
-    fontSize: 15,
+    fontSize: 14, // Slightly smaller
     fontWeight: "600",
     color: "#00D95F",
   },
   challengesContainer: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 0, // Align with content
   },
-  challengeCardContainer: {},
+  challengeCardContainer: {
+    // Keep existing margin between cards if defined by index logic
+  },
 
   // Loading
   loadingContainer: {
@@ -467,6 +523,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     gap: 20,
+    backgroundColor: "#121212", // Ensure background matches
   },
   loadingText: {
     color: "#00D95F",
@@ -474,24 +531,24 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Erro
+  // Error
   errorContainer: {
-    backgroundColor: "rgba(220, 38, 38, 0.12)",
-    marginHorizontal: 20,
-    padding: 18,
-    borderRadius: 16,
+    backgroundColor: "rgba(220, 38, 38, 0.15)", // Slightly darker error background
+    marginHorizontal: 0, // Align with other content
+    padding: 16, // Reduced padding
+    borderRadius: 12, // Consistent border radius
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: "rgba(220, 38, 38, 0.4)",
-    shadowColor: "rgba(220, 38, 38, 0.2)",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.7,
-    shadowRadius: 10,
-    elevation: 4,
+    borderColor: "rgba(220, 38, 38, 0.5)", // Stronger error border
+    shadowColor: "rgba(220, 38, 38, 0.3)", // More prominent error shadow
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.8,
+    shadowRadius: 8,
+    elevation: 5,
   },
   errorText: {
     color: "#F87171",
-    fontSize: 15,
+    fontSize: 14,
     textAlign: "center",
     fontWeight: "600",
   },
