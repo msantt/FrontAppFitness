@@ -32,7 +32,8 @@ export const apiService = {
 
       const token = await response.text();
       if (!response.ok) return { error: "Usuário ou Senha Invalidos!" };
-      if (!token.startsWith("ey")) return { error: "Token inválido ou não recebido" };
+      if (!token.startsWith("ey"))
+        return { error: "Token inválido ou não recebido" };
       return { token };
     } catch (error) {
       return { error: error.message || "Erro desconhecido ao fazer login" };
@@ -52,7 +53,8 @@ export const apiService = {
       const text = await response.text();
       return {
         success: false,
-        message: text || `Erro ao cadastrar usuário. Status: ${response.status}`,
+        message:
+          text || `Erro ao cadastrar usuário. Status: ${response.status}`,
       };
     } catch (error) {
       return {
@@ -65,7 +67,10 @@ export const apiService = {
   getMembroDesafioPorId: async (id) => {
     try {
       const response = await fetch(`${API_URL}/membros-desafio/${id}`);
-      if (!response.ok) throw new Error(await response.text() || "Erro ao buscar membro do desafio");
+      if (!response.ok)
+        throw new Error(
+          (await response.text()) || "Erro ao buscar membro do desafio"
+        );
       const text = await response.text();
       return text ? JSON.parse(text) : null;
     } catch (error) {
@@ -88,7 +93,9 @@ export const apiService = {
 
   getUsuarioByEmail: async (email) => {
     try {
-      const response = await fetch(`${API_URL}/usuarios/email/${encodeURIComponent(email)}`);
+      const response = await fetch(
+        `${API_URL}/usuarios/email/${encodeURIComponent(email)}`
+      );
       if (!response.ok) throw new Error("Erro ao buscar usuário");
       const text = await response.text();
       return text ? JSON.parse(text) : null;
@@ -102,7 +109,8 @@ export const apiService = {
     try {
       const response = await fetch(`${API_URL}/desafios/`);
       if (response.status === 204) return [];
-      if (!response.ok) throw new Error(`Erro ao buscar desafios. Status: ${response.status}`);
+      if (!response.ok)
+        throw new Error(`Erro ao buscar desafios. Status: ${response.status}`);
       const text = await response.text();
       if (!text) return [];
       const data = JSON.parse(text);
@@ -150,7 +158,9 @@ export const apiService = {
 
   getMembrosByDesafio: async (desafioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/desafio/${desafioId}`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/desafio/${desafioId}`
+      );
       if (!response.ok) return response.status === 204 ? [] : [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -255,7 +265,10 @@ export const apiService = {
       const data = text ? JSON.parse(text) : null;
 
       if (!response.ok) {
-        return { success: false, error: data?.message || "Erro ao criar grupo" };
+        return {
+          success: false,
+          error: data?.message || "Erro ao criar grupo",
+        };
       }
 
       return { success: true, data };
@@ -321,7 +334,9 @@ export const apiService = {
 
   getRanking: async (desafioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/desafio/${desafioId}/ranking`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/desafio/${desafioId}/ranking`
+      );
       if (!response.ok) return response.status === 204 ? [] : [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -332,7 +347,9 @@ export const apiService = {
 
   getDesafiosByUsuario: async (usuarioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/usuario/${usuarioId}`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/usuario/${usuarioId}`
+      );
       if (!response.ok) return response.status === 204 ? [] : [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -354,7 +371,9 @@ export const apiService = {
 
   listarGruposDoUsuario: async (userId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-grupo/usuario/${userId}`);
+      const response = await fetch(
+        `${API_URL}/membros-grupo/usuario/${userId}`
+      );
       if (!response.ok) return [];
 
       const text = await response.text();
@@ -372,7 +391,9 @@ export const apiService = {
 
   getMeusDesafios: async (usuarioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/usuario/${usuarioId}`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/usuario/${usuarioId}`
+      );
       if (!response.ok) return [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -407,7 +428,9 @@ export const apiService = {
 
   getRankingByDesafioId: async (desafioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/desafio/${desafioId}/ranking`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/desafio/${desafioId}/ranking`
+      );
       if (!response.ok) return response.status === 204 ? [] : [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -418,7 +441,20 @@ export const apiService = {
 
   getMembrosPorUsuario: async (usuarioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/usuario/${usuarioId}`);
+      const response = await fetch(
+        `${API_URL}/membros-desafio/usuario/${usuarioId}`
+      );
+      if (!response.ok) return [];
+      const text = await response.text();
+      return text ? JSON.parse(text) : [];
+    } catch {
+      return [];
+    }
+  },
+
+  getMembroById: async (membroId) => {
+    try {
+      const response = await fetch(`${API_URL}/membros-grupo/${membroId}`);
       if (!response.ok) return [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -449,13 +485,20 @@ export const apiService = {
 
   desistirDoDesafio: async (desafioId, usuarioId) => {
     try {
-      const response = await fetch(`${API_URL}/membros-desafio/${desafioId}/desistir?usuarioId=${encodeURIComponent(usuarioId)}`, {
-        method: "POST",
-      });
+      const response = await fetch(
+        `${API_URL}/membros-desafio/${desafioId}/desistir?usuarioId=${encodeURIComponent(
+          usuarioId
+        )}`,
+        {
+          method: "POST",
+        }
+      );
 
       if (!response.ok) {
         if (response.status === 403) {
-          throw new Error("Desistência não permitida. O desafio pode não estar ativo.");
+          throw new Error(
+            "Desistência não permitida. O desafio pode não estar ativo."
+          );
         }
         throw new Error("Erro ao desistir do desafio");
       }
@@ -474,14 +517,17 @@ export const apiService = {
       id: dadosOriginais.id,
       nome: dadosEditados.nome ?? dadosOriginais.nome,
       email: dadosEditados.email ?? dadosOriginais.email,
-      dataNascimento: dadosEditados.dataNascimento ?? dadosOriginais.dataNascimento,
+      dataNascimento:
+        dadosEditados.dataNascimento ?? dadosOriginais.dataNascimento,
       chavePix: dadosEditados.chavePix ?? dadosOriginais.chavePix,
       objetivo: dadosEditados.objetivo ?? dadosOriginais.objetivo,
       urlFoto: dadosEditados.urlFoto ?? dadosOriginais.urlFoto,
       saldo: dadosEditados.saldo ?? dadosOriginais.saldo,
       status: dadosEditados.status ?? dadosOriginais.status,
+      exibirHistorico:
+        dadosEditados.exibirHistorico ?? dadosOriginais.exibirHistorico,
     };
-
+    console.log(dadosParaAtualizar)
     try {
       const response = await fetch(`${API_URL}/usuarios/${dadosOriginais.id}`, {
         method: "PUT",
@@ -493,7 +539,7 @@ export const apiService = {
         const textError = await response.text();
         throw new Error(textError || "Erro ao atualizar usuário");
       }
-
+      console.log(response)
       const text = await response.text();
       return text ? JSON.parse(text) : null;
     } catch (error) {
@@ -502,9 +548,12 @@ export const apiService = {
   },
 
   depositar: async (idUsuario, valor) => {
-    const response = await fetch(`${API_URL}/usuarios/${idUsuario}/depositar?valor=${valor}`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `${API_URL}/usuarios/${idUsuario}/depositar?valor=${valor}`,
+      {
+        method: "POST",
+      }
+    );
 
     if (!response.ok) {
       const text = await response.text();
@@ -516,9 +565,12 @@ export const apiService = {
   },
 
   sacar: async (idUsuario, valor) => {
-    const response = await fetch(`${API_URL}/usuarios/${idUsuario}/sacar?valor=${valor}`, {
-      method: "POST",
-    });
+    const response = await fetch(
+      `${API_URL}/usuarios/${idUsuario}/sacar?valor=${valor}`,
+      {
+        method: "POST",
+      }
+    );
 
     if (!response.ok) {
       const text = await response.text();
@@ -531,7 +583,9 @@ export const apiService = {
 
   getNotificacoesByUsuario: async (usuarioId) => {
     try {
-      const response = await fetch(`${API_URL}/usuarios/${usuarioId}/notificacoes`);
+      const response = await fetch(
+        `${API_URL}/usuarios/${usuarioId}/notificacoes`
+      );
       if (!response.ok) return [];
       const text = await response.text();
       return text ? JSON.parse(text) : [];
@@ -540,4 +594,3 @@ export const apiService = {
     }
   },
 };
-

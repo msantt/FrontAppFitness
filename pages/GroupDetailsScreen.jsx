@@ -9,7 +9,7 @@ import {
   SafeAreaView,
   FlatList,
   TouchableOpacity,
-  Alert,
+  Modal,
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
@@ -28,79 +28,82 @@ export default function GroupDetails({ route, navigation }) {
   const [grupo, setGrupo] = useState(null);
   const [membros, setMembros] = useState([]);
   const [desafios, setDesafios] = useState([]);
+
+  // modal desafio
   const [modalVisible, setModalVisible] = useState(false);
   const [desafioIdSelecionado, setDesafioIdSelecionado] = useState(null);
   const [mensagemModal, setMensagemModal] = useState("");
 
-  const loadUsuario = async () => {
-    try {
-      const email = await AsyncStorage.getItem("userEmail");
-      if (!email) throw new Error("Usuário não encontrado");
+  // modal visita perfil
+  const [modalVisitaVisible, setModalVisitaVisible] = useState(false);
+  const [membroSelecionado, setMembroSelecionado] = useState(null);
+  const [mensagemVisita, setMensagemVisita] = useState("");
 
-      const usuario = await apiService.getUsuarioByEmail(email);
-      if (!usuario?.id) throw new Error("Usuário inválido");
+  // modal foto ampliada
+  const [fotoSelecionada, setFotoSelecionada] = useState(null);
 
-      setUserId(usuario.id);
-    } catch (error) {
-      setErrorMsg(`Erro: ${error.message}`);
-      setLoading(false);
-    }
-  };
-
-  const loadGrupoEMembros = async () => {
-    try {
-      const grupoData = await apiService.getGrupoById(grupoId);
-      const membrosData = await apiService.getMembrosByGrupo(grupoId);
-      setGrupo(grupoData);
-      setMembros(membrosData);
-    } catch (error) {
-      setErrorMsg("Erro ao carregar dados do grupo");
-    }
-  };
-
-  const loadDesafios = async () => {
-    if (!grupoId) return;
-
-    try {
-      const desafiosDoGrupo = await apiService.getDesafiosByGrupoId(grupoId);
-      setDesafios(desafiosDoGrupo || []);
-    } catch (error) {
-      console.error("Erro ao carregar desafios:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // ============ Carregamento ============
 
   useEffect(() => {
+    async function loadUsuario() {
+      try {
+        const email = await AsyncStorage.getItem("userEmail");
+        if (!email) throw new Error("Usuário não encontrado");
+        const usuario = await apiService.getUsuarioByEmail(email);
+        if (!usuario?.id) throw new Error("Usuário inválido");
+        setUserId(usuario.id);
+      } catch (err) {
+        setErrorMsg(err.message);
+      }
+    }
     loadUsuario();
   }, []);
 
   useEffect(() => {
+    async function loadGrupoEMembros() {
+      try {
+        const g = await apiService.getGrupoById(grupoId);
+        const m = await apiService.getMembrosByGrupo(grupoId);
+        setGrupo(g);
+        setMembros(m);
+      } catch {
+        setErrorMsg("Erro ao carregar dados do grupo");
+      }
+    }
+    async function loadDesafios() {
+      try {
+        const d = await apiService.getDesafiosByGrupoId(grupoId);
+        setDesafios(d || []);
+      } catch {
+        console.error("Erro ao carregar desafios");
+      } finally {
+        setLoading(false);
+      }
+    }
     if (grupoId) {
       loadGrupoEMembros();
       loadDesafios();
     }
   }, [grupoId]);
 
-  const handleDesafioPress = async (desafioId) => {
-    try {
-      const membrosDesafio = await apiService.getMembrosByDesafio(desafioId);
-      const isMembro = membrosDesafio.some((m) => m.usuario?.id === userId);
+  // ============ Handlers ============
 
+  const handleDesafioPress = async (id) => {
+    try {
+      const md = await apiService.getMembrosByDesafio(id);
+      const isMembro = md.some((x) => x.usuario?.id === userId);
       if (isMembro) {
-        navigation.navigate("DetalhesDesafios", { desafioId });
+        navigation.navigate("DetalhesDesafios", { desafioId: id });
       } else {
         setMensagemModal("Você não é membro deste desafio. Deseja participar?");
-        setDesafioIdSelecionado(desafioId);
+        setDesafioIdSelecionado(id);
         setModalVisible(true);
       }
-    } catch (error) {
-      console.error("Erro ao verificar membros do desafio:", error);
+    } catch {
       setMensagemModal("Erro ao verificar sua participação. Tente novamente.");
       setModalVisible(true);
     }
   };
-
   const handleConfirmarParticipacao = () => {
     setModalVisible(false);
     if (desafioIdSelecionado) {
@@ -109,7 +112,6 @@ export default function GroupDetails({ route, navigation }) {
       });
     }
   };
-
   const handleCancelar = () => {
     setModalVisible(false);
     setDesafioIdSelecionado(null);
@@ -119,9 +121,28 @@ export default function GroupDetails({ route, navigation }) {
     navigation.navigate("CriarDesafios", { grupoId });
   };
 
-  const getMembroDoUsuarioNoGrupo = () => {
-    return membros.find((m) => m.usuario?.id === userId);
+  const handleMembroPress = (m) => {
+    setMembroSelecionado(m);
+    setMensagemVisita(
+      `Deseja visitar o perfil de ${
+        m.usuario?.nome?.split(" ")[0] ?? "este usuário"
+      }?`
+    );
+    setModalVisitaVisible(true);
   };
+  const handleConfirmarVisitaPerfil = () => {
+    setModalVisitaVisible(false);
+    const id = membroSelecionado?.id;
+    setMembroSelecionado(null);
+    console.log(id)
+    if (id) navigation.navigate("PerfilVisitante", { membroId: id });
+  };
+  const handleCancelarVisitaPerfil = () => {
+    setModalVisitaVisible(false);
+    setMembroSelecionado(null);
+  };
+
+  // ============ Render ============
 
   if (loading) {
     return (
@@ -131,7 +152,6 @@ export default function GroupDetails({ route, navigation }) {
       </View>
     );
   }
-
   if (errorMsg) {
     return (
       <View style={styles.loadingContainer}>
@@ -141,19 +161,25 @@ export default function GroupDetails({ route, navigation }) {
   }
 
   const renderMembro = ({ item }) => (
-    <View style={styles.memberItem}>
-      <Image
-        source={{
-          uri:
-            item.usuario?.urlFoto ||
-            "https://s3.amazonaws.com/37assets/svn/765-default-avatar.png",
-        }}
-        style={styles.memberAvatar}
-      />
+    <TouchableOpacity
+      style={styles.memberItem}
+      activeOpacity={0.7}
+      onPress={() => handleMembroPress(item)}
+    >
+      <TouchableOpacity onPress={() => handleMembroPress(item)}>
+        <Image
+          source={{
+            uri:
+              item.usuario?.urlFoto ||
+              "https://s3.amazonaws.com/37assets/svn/765-default-avatar.png",
+          }}
+          style={styles.memberAvatar}
+        />
+      </TouchableOpacity>
       <Text style={styles.memberName}>
-        {item.usuario?.nome?.split(" ")[0] || "Usuário"}
+        {item.usuario?.nome?.split(" ")[0] ?? "Usuário"}
       </Text>
-    </View>
+    </TouchableOpacity>
   );
 
   const renderDesafio = ({ item }) => (
@@ -180,14 +206,14 @@ export default function GroupDetails({ route, navigation }) {
       <Header
         title={grupo?.nome || "Grupo"}
         showBackButton
-        onBackPress={() => navigation.goBack()}
+        onBackPress={navigation.goBack}
       />
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Card Principal do Grupo */}
+        {/* Grupo header */}
         <View style={styles.groupHeader}>
           <View style={styles.imagemContainer}>
             {grupo?.urlFoto ? (
@@ -213,20 +239,20 @@ export default function GroupDetails({ route, navigation }) {
           <Text style={styles.sectionTitle}>Membros</Text>
           <FlatList
             data={membros}
-            keyExtractor={(item) => item.id}
+            keyExtractor={(i) => i.id.toString()}
             renderItem={renderMembro}
             horizontal
             showsHorizontalScrollIndicator={false}
           />
         </View>
 
-        {/* Desafios do Grupo */}
+        {/* Desafios */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Desafios do Grupo</Text>
           {desafios.length > 0 ? (
             <FlatList
               data={desafios}
-              keyExtractor={(item) => item.id}
+              keyExtractor={(i) => i.id.toString()}
               renderItem={renderDesafio}
               scrollEnabled={false}
             />
@@ -238,43 +264,43 @@ export default function GroupDetails({ route, navigation }) {
         </View>
       </ScrollView>
 
-      {/* Botão fixo flutuante */}
+      {/* FAB */}
       <TouchableOpacity style={styles.fab} onPress={handleCreateDesafio}>
         <Text style={styles.fabIcon}>+</Text>
       </TouchableOpacity>
       <View style={styles.bottomNav}>
         <BottomNav active="EncontrarGruposScreen" />
       </View>
+
+      {/* Modal desafio */}
       <ModalConfirmacao
         visible={modalVisible}
         mensagem={mensagemModal}
         onConfirm={handleConfirmarParticipacao}
         onCancel={handleCancelar}
       />
+
+      {/* Modal visita perfil */}
+      <ModalConfirmacao
+        visible={modalVisitaVisible}
+        mensagem={mensagemVisita}
+        onConfirm={handleConfirmarVisitaPerfil}
+        onCancel={handleCancelarVisitaPerfil}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#121212",
-  },
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 140, // espaço para botão flutuante
-  },
+  container: { flex: 1, backgroundColor: "#121212" },
+  scrollContent: { padding: 20, paddingBottom: 140 },
   loadingContainer: {
     flex: 1,
     backgroundColor: "#121212",
     justifyContent: "center",
     alignItems: "center",
   },
-  loadingText: {
-    color: "#CCC",
-    marginTop: 12,
-    fontSize: 16,
-  },
+  loadingText: { color: "#CCC", marginTop: 12, fontSize: 16 },
   errorText: {
     color: "#FF6B6B",
     fontSize: 17,
@@ -283,7 +309,6 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // Header do Grupo
   groupHeader: {
     backgroundColor: "#222",
     borderRadius: 16,
@@ -304,13 +329,9 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: "#2a2a2a",
   },
-  imagemGrupo: {
-    width: "100%",
-    height: "100%",
-  },
+  imagemGrupo: { width: "100%", height: "100%" },
   imagemPlaceholder: {
-    width: "100%",
-    height: "100%",
+    flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -334,7 +355,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
 
-  // Cards
   card: {
     backgroundColor: "#222",
     borderRadius: 16,
@@ -354,12 +374,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
 
-  // Membros
-  memberItem: {
-    alignItems: "center",
-    marginRight: 24,
-    width: 80,
-  },
+  memberItem: { alignItems: "center", marginRight: 24, width: 80 },
   memberAvatar: {
     width: 75,
     height: 75,
@@ -376,7 +391,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
 
-  // Desafios
   timelineItem: {
     flexDirection: "row",
     alignItems: "flex-start",
@@ -390,9 +404,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginRight: 20,
   },
-  timelineContent: {
-    flex: 1,
-  },
+  timelineContent: { flex: 1 },
   timelineText: {
     fontSize: 17,
     fontWeight: "600",
@@ -412,6 +424,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 16,
   },
+
   fab: {
     position: "absolute",
     right: 20,
@@ -428,24 +441,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
   },
-  fabIcon: {
-    color: "#000",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
+  fabIcon: { color: "#000", fontSize: 24, fontWeight: "bold" },
 
-  // Botão sair (caso precise)
-  exitButton: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: "#FF3B30",
-    borderRadius: 10,
-    alignSelf: "center",
-    marginTop: 10,
+  bottomNav: { position: "absolute", left: 0, right: 0, bottom: 0 },
+
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.8)",
+    justifyContent: "center",
+    alignItems: "center",
   },
-  exitButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 14,
-  },
+  modalImage: { width: "90%", height: "70%", borderRadius: 16 },
 });

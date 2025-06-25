@@ -18,7 +18,6 @@ export async function getEnderecoFromLatLng(lat, lon) {
 
     return `${rua}${cidade ? ", " + cidade : ""}`;
   } catch (error) {
-    console.error("Erro ao buscar endereço:", error);
     return null;
   }
 }

@@ -8,7 +8,11 @@ import {
   TextInput,
   Dimensions,
   Modal,
+  ActivityIndicator,
+  TouchableOpacity,
+  Switch,
 } from "react-native";
+
 import { Header } from "../components/Header";
 import { BottomNav } from "../components/BottomNav";
 import Button from "../components/ButtonDesafios";
@@ -17,9 +21,15 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { ModalFeedback } from "../components/ModalFeedback";
 import { MaterialIcons } from "@expo/vector-icons";
 import DropdownModal from "../components/Modal";
-import { ModalConfirmacao } from "../components/ModalConfirm"; // Import do modal de confirmação
+import { ModalConfirmacao } from "../components/ModalConfirm";
+import { getEnderecoFromLatLng } from "../services/geolocationService";
+const SPACING = 2;
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
+const BORDER_WIDTH = 1;
+
+const screenWidth = Dimensions.get("window").width;
+const imageSize = (screenWidth - 12 * 4) / 2;
 
 const objetivosOptions = [
   { id: "EMAGRECIMENTO", nome: "Emagrecimento" },
@@ -33,7 +43,10 @@ const objetivosOptions = [
   { id: "REDUCAO_DO_ESTRESSE", nome: "Redução do estresse" },
   { id: "DESEMPENHO_ESPORTIVO", nome: "Desempenho esportivo" },
   { id: "MANUTENCAO_DO_CORPO", nome: "Manutenção do corpo" },
-  { id: "REEDUCACAO_ALIMENTAR_E_TREINO", nome: "Reeducação alimentar e treino" },
+  {
+    id: "REEDUCACAO_ALIMENTAR_E_TREINO",
+    nome: "Reeducação alimentar e treino",
+  },
 ];
 
 const formatCurrency = (value) => {
@@ -54,6 +67,7 @@ export const Perfil = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [editando, setEditando] = useState(false);
   const [dadosEditados, setDadosEditados] = useState({});
+  const [email, setEmail] = useState("");
 
   const [modalDeposito, setModalDeposito] = useState(false);
   const [modalSaque, setModalSaque] = useState(false);
@@ -64,9 +78,53 @@ export const Perfil = ({ navigation }) => {
   const [feedbackType, setFeedbackType] = useState("success");
   const [feedbackMessage, setFeedbackMessage] = useState("");
 
-  const [email, setEmail] = useState("");
+  const [feedFotos, setFeedFotos] = useState([]);
+  const [modalZoomVisible, setModalZoomVisible] = useState(false);
+  const [fotoSelecionada, setFotoSelecionada] = useState(null);
 
-  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false); // controla modal de confirmação de saída
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+  const [endereco, setEndereco] = useState("");
+  const [loadingModal, setLoadingModal] = useState(false);
+  const [pendingPrivateValue, setPendingPrivateValue] = useState(null);
+  const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+
+  useEffect(() => {
+    async function carregarEndereco() {
+      if (fotoSelecionada?.local) {
+        setLoadingModal(true);
+        try {
+          const [lat, lon] = fotoSelecionada.local
+            .split(",")
+            .map((s) => s.trim());
+          const res = await getEnderecoFromLatLng(lat, lon);
+          if (res) setEndereco(res);
+        } catch (error) {
+          console.error("Erro ao carregar endereço:", error);
+        } finally {
+          setLoadingModal(false);
+        }
+      }
+    }
+
+    carregarEndereco();
+  }, [fotoSelecionada]);
+
+function somarTresHoras(dataHoraStr) {
+  const dataOriginal = new Date(dataHoraStr);
+
+  // Soma 3 horas (em milissegundos)
+  const dataAjustada = new Date(dataOriginal.getTime() + 3 * 60 * 60 * 1000);
+
+  const dia = String(dataAjustada.getDate()).padStart(2, "0");
+  const mes = String(dataAjustada.getMonth() + 1).padStart(2, "0");
+  const ano = dataAjustada.getFullYear();
+
+  const horas = String(dataAjustada.getHours()).padStart(2, "0");
+  const minutos = String(dataAjustada.getMinutes()).padStart(2, "0");
+
+  return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+}
+
 
   useEffect(() => {
     const carregarEmailEUsuario = async () => {
@@ -81,7 +139,6 @@ export const Perfil = ({ navigation }) => {
           setFeedbackType("error");
           setFeedbackMessage("Email não encontrado. Faça login novamente.");
           setFeedbackVisible(true);
-          // Redireciona para login, limpando pilha
           navigation.reset({
             index: 0,
             routes: [{ name: "LoginScreen" }],
@@ -102,7 +159,10 @@ export const Perfil = ({ navigation }) => {
   const handleSalvarEdicao = async () => {
     try {
       setLoading(true);
-      const usuarioAtualizado = await apiService.atualizarUsuario(usuario, dadosEditados);
+      const usuarioAtualizado = await apiService.atualizarUsuario(
+        usuario,
+        dadosEditados
+      );
       setUsuario(usuarioAtualizado);
       setEditando(false);
 
@@ -122,6 +182,34 @@ export const Perfil = ({ navigation }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    const carregarFeedFotos = async () => {
+      try {
+        const checkins = await apiService.getCheckInsByUsuarioId(usuario.id);
+
+        const checkinsOrdenados = checkins.sort(
+          (a, b) => new Date(b.dataHoraCheckin) - new Date(a.dataHoraCheckin)
+        );
+
+        setFeedFotos(checkinsOrdenados);
+      } catch (error) {
+        console.log("Erro ao carregar feed de fotos:", error);
+      }
+    };
+
+    if (usuario) carregarFeedFotos();
+  }, [usuario]);
+
+  const abrirModalZoom = (foto) => {
+    setFotoSelecionada(foto);
+    setModalZoomVisible(true);
+  };
+
+  const fecharModalZoom = () => {
+    setModalZoomVisible(false);
+    setFotoSelecionada(null);
   };
 
   const mostrarFeedback = (tipo, mensagem) => {
@@ -260,7 +348,6 @@ export const Perfil = ({ navigation }) => {
   };
 
   const handleLogout = async () => {
-    // Limpa o AsyncStorage e redireciona para LoginScreen, limpando pilha
     try {
       await AsyncStorage.removeItem("userEmail");
     } catch (e) {
@@ -287,6 +374,32 @@ export const Perfil = ({ navigation }) => {
     );
   }
 
+  const handleTogglePrivate = async () => {
+    try {
+      setLoading(true);
+      const novosDados = { ...usuario, exibirHistorico: pendingPrivateValue };
+      const usuarioAtualizado = await apiService.atualizarUsuario(
+        usuario,
+        novosDados
+      );
+      setUsuario(usuarioAtualizado);
+      setDadosEditados(usuarioAtualizado);
+      mostrarFeedback(
+        "success",
+        `Seu perfil agora está ${pendingPrivateValue ? "público" : "privado"}.`
+      );
+    } catch (error) {
+      mostrarFeedback(
+        "error",
+        "Não foi possível atualizar a visibilidade do perfil."
+      );
+    } finally {
+      setLoading(false);
+      setShowPrivateConfirm(false);
+      setPendingPrivateValue(null);
+    }
+  };
+
   return (
     <View style={styles.container}>
       <Header
@@ -309,8 +422,29 @@ export const Perfil = ({ navigation }) => {
             style={styles.avatar}
           />
           <Text style={styles.username}>{usuario.nome}</Text>
+          <View style={styles.toggleContainer}>
+            <View style={styles.toggleLabelContainer}>
+              <MaterialIcons
+                name={usuario.exibirHistorico ? "public" : "lock"}
+                size={20}
+                color={usuario.exibirHistorico ? "#1DB954" : "#FF5555"}
+                style={{ marginRight: 8 }}
+              />
+              <Text style={styles.toggleLabel}>
+                {usuario.exibirHistorico ? "Público" : "Privado"}
+              </Text>
+            </View>
+            <Switch
+              value={!usuario.exibirHistorico}
+              onValueChange={(newValue) => {
+                setPendingPrivateValue(!newValue ? true : false);
+                setShowPrivateConfirm(true);
+              }}
+              thumbColor={usuario.exibirHistorico ? "#1DB954" : "#FF5555"}
+              trackColor={{ false: "#888", true: "#1DB95455" }}
+            />
+          </View>
         </View>
-
         <View style={styles.saldoSection}>
           <Text style={styles.saldoLabel}>Saldo Atual</Text>
           <Text style={styles.saldoValor}>R$ {usuario.saldo.toFixed(2)}</Text>
@@ -330,7 +464,6 @@ export const Perfil = ({ navigation }) => {
             />
           </View>
         </View>
-
         <View style={styles.objetivoContainer}>
           <MaterialIcons
             name="star"
@@ -358,7 +491,6 @@ export const Perfil = ({ navigation }) => {
             </Text>
           )}
         </View>
-
         <View style={styles.infoSection}>
           <Text style={styles.inputLabel}>Email</Text>
           {editando ? (
@@ -393,7 +525,76 @@ export const Perfil = ({ navigation }) => {
             <Text style={styles.infoValue}>{usuario.chavePix}</Text>
           )}
         </View>
+        <View style={styles.feedSection}>
+          <Text style={styles.feedTitle}>Feed de Check-ins</Text>
 
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.feedScrollContent}
+          >
+            <View style={styles.feedGrid}>
+              {feedFotos.map((item, index) => (
+                <TouchableOpacity
+                  key={item.id.toString()}
+                  onPress={() => abrirModalZoom(item)}
+                  activeOpacity={0.8}
+                  style={styles.feedImageWrapper}
+                >
+                  <Image
+                    source={{ uri: item.urlFoto }}
+                    style={styles.feedImage}
+                  />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </ScrollView>
+        </View>
+
+        <Modal visible={modalZoomVisible} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.zoomContent}>
+              {loadingModal ? (
+                <ActivityIndicator size="large" color="#1DB954" />
+              ) : fotoSelecionada ? (
+                <>
+                  {/* Localização */}
+                  {endereco ? (
+                    <View style={styles.locationContainer}>
+                      <MaterialIcons
+                        name="location-on"
+                        size={20}
+                        color="#FF5555"
+                      />
+                      <Text style={styles.locationText}>{endereco}</Text>
+                    </View>
+                  ) : (
+                    <Text style={styles.locationText}>Local não informado</Text>
+                  )}
+
+                  {/* Imagem */}
+                  <Image
+                    source={{ uri: fotoSelecionada.urlFoto }}
+                    style={styles.zoomImage}
+                    resizeMode="contain"
+                  />
+
+                  {/* Data/Hora */}
+                  <Text style={styles.dateText}>
+                    {somarTresHoras(fotoSelecionada.dataHoraCheckin)}
+                  </Text>
+
+                  {/* Botão Fechar */}
+                  <TouchableOpacity
+                    style={styles.closeButton}
+                    onPress={fecharModalZoom}
+                  >
+                    <Text style={styles.closeButtonText}>Fechar</Text>
+                  </TouchableOpacity>
+                </>
+              ) : null}
+            </View>
+          </View>
+        </Modal>
         <View style={styles.actionSection}>
           {editando ? (
             <View style={styles.editButtons}>
@@ -436,7 +637,20 @@ export const Perfil = ({ navigation }) => {
       {renderModalTransacao("deposito")}
       {renderModalTransacao("saque")}
 
-      {/* Modal de confirmação de saída */}
+      <ModalConfirmacao
+        visible={showPrivateConfirm}
+        mensagem={`Tem certeza que deseja ${
+          pendingPrivateValue
+            ? "deixar o perfil público"
+            : "deixar o perfil privado"
+        }?`}
+        onConfirm={handleTogglePrivate}
+        onCancel={() => {
+          setShowPrivateConfirm(false);
+          setPendingPrivateValue(null);
+        }}
+      />
+
       <ModalConfirmacao
         visible={showLogoutConfirm}
         mensagem="Tem certeza que deseja sair?"
@@ -457,7 +671,7 @@ export const Perfil = ({ navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+export const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#1A1A1A",
@@ -465,10 +679,12 @@ const styles = StyleSheet.create({
   scrollView: {
     flex: 1,
   },
+
   scrollContent: {
     padding: 16,
     paddingBottom: 100,
   },
+
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -542,6 +758,23 @@ const styles = StyleSheet.create({
     padding: 20,
     marginBottom: 24,
   },
+  toggleContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: 20,
+    marginVertical: 12,
+  },
+  toggleLabelContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  toggleLabel: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "500",
+  },
+
   inputLabel: {
     color: "#FFF",
     fontSize: 14,
@@ -565,18 +798,112 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   editButtons: {
+    position: "absolute",
     flexDirection: "row",
     gap: 12,
   },
   editButton: {
     flex: 1,
   },
+
+  feedSection: {
+    marginTop: 16,
+    marginBottom: 24,
+  },
+  feedTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#FFF",
+    marginLeft: 12,
+    marginBottom: 8,
+  },
+  feedScrollContent: {
+    paddingHorizontal: 4,
+  },
+  feedGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  feedImageWrapper: {
+    width: imageSize,
+    height: imageSize,
+    marginBottom: 10,
+    backgroundColor: "#222",
+    borderRadius: 4,
+    overflow: "hidden",
+  },
+  feedImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.7)",
+    backgroundColor: "rgba(0,0,0,0.9)",
     justifyContent: "center",
     alignItems: "center",
   },
+  zoomContent: {
+    width: width,
+    height: height,
+    backgroundColor: "#000",
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  locationContainer: {
+    position: "absolute",
+    top: 100,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 16,
+  },
+  locationIcon: {
+    width: 16,
+    height: 16,
+    tintColor: "#fff",
+  },
+  locationText: {
+    color: "#fff",
+    marginLeft: 6,
+    fontSize: 14,
+  },
+  zoomImage: {
+    width: width,
+    height: width * (16 / 9),
+    resizeMode: "cover",
+  },
+  dateText: {
+    position: "absolute",
+    bottom: 100,
+    color: "#ccc",
+    fontSize: 14,
+    textAlign: "center",
+    backgroundColor: "rgba(0,0,0,0.6)",
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  closeButton: {
+    position: "absolute",
+    top: 40,
+    right: 20,
+    padding: 8,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 20,
+  },
+  closeButtonText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+
+  /* Modal (geral) */
   modalContent: {
     backgroundColor: "#2A2A2A",
     borderRadius: 12,

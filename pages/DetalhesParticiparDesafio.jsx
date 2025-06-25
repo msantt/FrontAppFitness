@@ -136,7 +136,7 @@ export const ParticiparDesafioScreen = ({ navigation, route }) => {
       setFeedbackVisible(true);
     } catch (error) {
       setFeedbackType("error");
-      setFeedbackMessage("Não foi possível participar do desafio.");
+      setFeedbackMessage("Não foi possível participar do desafio.Verifique o seu saldo!");
       setFeedbackVisible(true);
     } finally {
       setParticipando(false);

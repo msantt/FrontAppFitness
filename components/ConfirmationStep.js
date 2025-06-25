@@ -27,6 +27,7 @@ const ConfirmationStep = ({
   const [email, setEmail] = useState(null);
   const [usuario, setUsuario] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [modalVisible, setModalVisible] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
@@ -69,25 +70,27 @@ const ConfirmationStep = ({
       );
     });
   }
+
   function getDataHoraBrasil() {
     const now = new Date();
-    const utc = now.getTime() + now.getTimezoneOffset() * 60000;
-    const brasilOffsetMs = -3 * 60 * 60 * 1000;
-    const brasilDate = new Date(utc + brasilOffsetMs);
+    const brasilDate = new Date(now.getTime() - 3 * 60 * 60 * 1000);
 
-    const isoString = brasilDate.toISOString();
+    const year = brasilDate.getFullYear();
+    const month = String(brasilDate.getMonth() + 1).padStart(2, "0");
+    const day = String(brasilDate.getDate()).padStart(2, "0");
 
-    const [date, time] = isoString.split("T");
-    const [hora, resto] = time.split(".");
-    const microssegundos = resto
-      ? resto.replace("Z", "").padEnd(6, "0")
-      : "000000";
+    const hours = String(brasilDate.getHours()).padStart(2, "0");
+    const minutes = String(brasilDate.getMinutes()).padStart(2, "0");
+    const seconds = String(brasilDate.getSeconds()).padStart(2, "0");
+    const milliseconds = String(brasilDate.getMilliseconds()).padStart(3, "0");
 
-    return `${date}T${hora}.${microssegundos}`;
+    return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}.${milliseconds}`;
   }
 
   const handleConfirm = async () => {
     try {
+      setIsSubmitting(true);
+
       if (!usuario || !usuario.id) {
         throw new Error("Usuário não carregado para buscar check-ins.");
       }
@@ -99,6 +102,7 @@ const ConfirmationStep = ({
         setModalMessage("Você já fez check-in hoje neste desafio.");
         setModalType("error");
         setModalVisible(true);
+        setIsSubmitting(false);
         return;
       }
 
@@ -121,7 +125,7 @@ const ConfirmationStep = ({
       }
 
       const urlFoto = await uploadImagemParaCloudinary(capturedPhoto.uri);
-      
+
       const payload = {
         membroDesafio: { id: membroDesafioParaUsar },
         urlFoto,
@@ -136,8 +140,6 @@ const ConfirmationStep = ({
 
       console.log("Payload enviado:", payload);
 
-      console.log("Payload enviado:", payload);
-
       await apiService.salvarCheckIn(payload);
 
       setModalMessage("Seu check-in foi realizado com sucesso.");
@@ -148,6 +150,8 @@ const ConfirmationStep = ({
       setModalMessage(error.message || "Erro ao realizar check-in");
       setModalType("error");
       setModalVisible(true);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -208,7 +212,11 @@ const ConfirmationStep = ({
         </View>
       </View>
 
-      <CustomButton title="Confirmar" onPress={handleConfirm} />
+      {isSubmitting ? (
+        <ActivityIndicator size="large" color={colors.primary} />
+      ) : (
+        <CustomButton title="Confirmar" onPress={handleConfirm} />
+      )}
 
       <ModalFeedback
         visible={modalVisible}

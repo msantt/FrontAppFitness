@@ -22,25 +22,18 @@ export function TimelineItem({ item }) {
     }
   }, [item.local]);
 
-  // Função para converter horário da Virginia para Brasil (fixo: UTC-4 para UTC-3)
-  function converterHorarioVirginiaParaBrasil(dataHoraStr) {
-    const offsetVirginia = 4 * 60; // Virginia: UTC-4 (horário de verão)
-    const offsetBrasil = 3 * 60;   // Brasil: UTC-3
+  function somarTresHoras(dataHoraStr) {
+  const dataOriginal = new Date(dataHoraStr);
 
-    // Interpretar string como UTC
-    const dataUtc = new Date(dataHoraStr + "Z");
+  // Soma 3 horas (em milissegundos)
+  const dataAjustada = new Date(dataOriginal.getTime() + 3 * 60 * 60 * 1000);
 
-    // Ajustar para horário Virginia (subtrai 4 horas)
-    const dataVirginia = new Date(dataUtc.getTime() - offsetVirginia * 60000);
+  const horas = String(dataAjustada.getHours()).padStart(2, "0");
+  const minutos = String(dataAjustada.getMinutes()).padStart(2, "0");
 
-    // Ajustar para horário Brasil (adiciona 3 horas)
-    const dataBrasil = new Date(dataVirginia.getTime() + offsetBrasil * 60000);
+  return `${horas}:${minutos}`;
+}
 
-    const horas = dataBrasil.getHours().toString().padStart(2, "0");
-    const minutos = dataBrasil.getMinutes().toString().padStart(2, "0");
-
-    return `${horas}:${minutos}`;
-  }
 
   const statusLower = item.status.toLowerCase();
   const dotStyles = [
@@ -53,7 +46,7 @@ export function TimelineItem({ item }) {
   let horaFormatada = "";
   if (item.dataHoraCheckin) {
     try {
-      horaFormatada = converterHorarioVirginiaParaBrasil(item.dataHoraCheckin);
+      horaFormatada = somarTresHoras(item.dataHoraCheckin);
     } catch {
       horaFormatada = new Date(item.dataHoraCheckin).toLocaleTimeString([], {
         hour: "2-digit",
@@ -72,7 +65,7 @@ export function TimelineItem({ item }) {
       <View style={styles.timelineContent}>
         <View style={styles.usuario}>
           <Image
-            source={{ uri: item.membroDesafio?.usuario?.avatar }}
+            source={{ uri: item.membroDesafio?.usuario?.urlFoto }}
             style={styles.avatar}
           />
           <View style={styles.textContainer}>
