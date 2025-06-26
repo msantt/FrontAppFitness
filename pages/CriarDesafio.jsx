@@ -36,6 +36,7 @@ export const CriarDesafios = ({ navigation }) => {
     isPublico: true,
     categoria: { id: "" },
     grupos: { id: "" },
+    tipoPrivacidade: "" || "PRIVADO",
     criador: { id: "" },
     urlFoto: "",
   });
@@ -170,14 +171,31 @@ export const CriarDesafios = ({ navigation }) => {
       return false;
     }
 
-    // As datas já estão no formato DD-MM-YYYY?
     const dataInicioISO = formatDateToISO(formData.dataInicio);
     const dataFimISO = formatDateToISO(formData.dataFim);
 
-    if (new Date(dataInicioISO) < new Date()) {
-      Alert.alert("Erro", "A data de início deve ser no futuro.");
+    const hoje = new Date();
+    const ontem = new Date(
+      hoje.getFullYear(),
+      hoje.getMonth(),
+      hoje.getDate() - 1
+    );
+
+    const dataInicioObj = new Date(dataInicioISO);
+    const dataInicioSemHora = new Date(
+      dataInicioObj.getFullYear(),
+      dataInicioObj.getMonth(),
+      dataInicioObj.getDate()
+    );
+
+    if (dataInicioSemHora < ontem) {
+      Alert.alert(
+        "Erro",
+        "A data de início não pode ser anterior ao dia anterior."
+      );
       return false;
     }
+
     if (new Date(dataFimISO) < new Date(dataInicioISO)) {
       Alert.alert("Erro", "A data de término deve ser após a data de início.");
       return false;
@@ -186,12 +204,16 @@ export const CriarDesafios = ({ navigation }) => {
     return true;
   };
 
-  const formatDateToISO = (dateStr) => {
-    if (!dateStr) return "";
-    const [day, month, year] = dateStr.split("/");
-    if (!day || !month || !year) return "";
-    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
-  };
+  function formatDateToISO(dateString) {
+    const [day, month, year] = dateString.split("/");
+    const now = new Date();
+
+    const horas = String(now.getHours()).padStart(2, "0");
+    const minutos = String(now.getMinutes()).padStart(2, "0");
+    const segundos = String(now.getSeconds()).padStart(2, "0");
+
+    return `${year}-${month}-${day}`;
+  }
 
   const confirmarCriacao = () => {
     setShowConfirmModal(true);
@@ -208,16 +230,15 @@ export const CriarDesafios = ({ navigation }) => {
 
   const criarDesafio = async () => {
     if (!validarFormulario()) return;
-
+    console.log();
     const body = {
       nome: formData.nome,
       descricao: formData.descricao,
       categoria: { id: formData.categoria.id },
       grupos: { id: formData.grupos.id },
-      dataInicio: `${formatDateToISO(formData.dataInicio)}T06:00:00`,
-      dataFim: `${formatDateToISO(formData.dataFim)}T23:59:59`,
+      dataInicio: `${formatDateToISO(formData.dataInicio)}`,
+      dataFim: `${formatDateToISO(formData.dataFim)}`,
       status: formData.status,
-      recompensa: formData.recompensa,
       isPublico: formData.isPublico,
       valorAposta: Number(parseFloat(formData.valorAposta).toFixed(2)),
       tipoDesafio: formData.tipoDesafio,
@@ -226,6 +247,7 @@ export const CriarDesafios = ({ navigation }) => {
         formData.urlFoto ||
         "https://totalpass.com/wp-content/uploads/2024/09/desafio-fitness-1.png",
     };
+    
 
     console.log("Dados para enviar:", body);
 
@@ -253,11 +275,7 @@ export const CriarDesafios = ({ navigation }) => {
     }
   };
   const hojeFormatado = () => {
-    const hoje = new Date();
-    const dia = String(hoje.getDate()).padStart(2, "0");
-    const mes = String(hoje.getMonth() + 1).padStart(2, "0");
-    const ano = hoje.getFullYear();
-    return `${dia}/${mes}/${ano}`;
+    return new Date().toLocaleDateString("pt-BR");
   };
 
   const renderInput = (
