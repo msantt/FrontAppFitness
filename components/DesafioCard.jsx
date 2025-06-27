@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -6,10 +6,10 @@ import {
   Image,
   StyleSheet,
   Dimensions,
-} from 'react-native';
-import { apiService } from '../services/api';
+} from "react-native";
+import { apiService } from "../services/api";
 
-const { width } = Dimensions.get('window');
+const { width } = Dimensions.get("window");
 const cardWidth = (width - 48) / 2;
 
 export const DesafioCard = ({ desafio, onPress }) => {
@@ -25,30 +25,34 @@ export const DesafioCard = ({ desafio, onPress }) => {
 
   const getStatusColor = (status) => {
     switch (status?.toLowerCase()) {
-      case 'ativo':
-        return '#1DB954';
-      case 'patrocinado':
-        return '#FFD700';
-      case 'finalizado':
-        return '#666';
+      case "ativo":
+        return "#1DB954";
+      case "patrocinado":
+        return "#FFD700";
+      case "finalizado":
+        return "#666";
       default:
-        return '#1DB954';
+        return "#1DB954";
     }
   };
 
   const getStatusText = (status) => {
     switch (status?.toLowerCase()) {
-      case 'ativo': {
+      case "ativo": {
         const dias = calcularDiasRestantes(desafio.dataFim);
-        return dias > 0 ? `Acaba em ${dias} dia(s)` : 'Desafio encerrado';
+        if (dias > 0) return `Acaba em ${dias} dia(s)`;
+        if (dias === 0) return "Acaba Hoje";
+        return "Desafio encerrado";
       }
-      case 'patrocinado':
-        return 'Patrocinado';
-      case 'finalizado':
-        return 'Finalizado';
+      case "patrocinado":
+        return "Patrocinado";
+      case "finalizado":
+        return "Finalizado";
       default: {
         const dias = calcularDiasRestantes(desafio.dataFim);
-        return dias > 0 ? `Acaba em ${dias} dia(s)` : 'Desafio encerrado';
+        if (dias > 0) return `Acaba em ${dias} dia(s)`;
+        if (dias === 0) return "Acaba hoje";
+        return "Desafio encerrado";
       }
     }
   };
@@ -56,10 +60,10 @@ export const DesafioCard = ({ desafio, onPress }) => {
   const carregarMembros = async () => {
     try {
       const membros = await apiService.getMembrosByDesafio(desafio.id);
-      const ativos = membros.filter((m) => m.status === 'ATIVO');
+      const ativos = membros.filter((m) => m.status === "ATIVO");
       setMembrosAtivos(ativos.length);
     } catch (error) {
-      console.error('Erro ao carregar membros:', error);
+      console.error("Erro ao carregar membros:", error);
       setMembrosAtivos(0);
     }
   };
@@ -99,44 +103,44 @@ const styles = StyleSheet.create({
     width: cardWidth,
     height: 180,
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginBottom: 16,
-    backgroundColor: '#333',
+    backgroundColor: "#333",
   },
   cardImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
+    width: "100%",
+    height: "100%",
+    position: "absolute",
   },
   cardOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     padding: 12,
-    justifyContent: 'space-between',
+    justifyContent: "space-between",
   },
   statusBadge: {
-    alignSelf: 'flex-start',
+    alignSelf: "flex-start",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   statusText: {
-    color: '#000',
+    color: "#000",
     fontSize: 10,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   cardContent: {
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   cardTitle: {
-    color: '#FFF',
+    color: "#FFF",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 4,
   },
   participantesText: {
-    color: '#CCC',
+    color: "#CCC",
     fontSize: 12,
   },
 });

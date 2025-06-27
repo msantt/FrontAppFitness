@@ -53,6 +53,7 @@ const tipoNotificacaoParaIcone = {
 const formatDateTime = (dateString) => {
   if (!dateString) return "";
   const d = new Date(dateString);
+  d.setHours(d.getHours() - 3);
   const day = String(d.getDate()).padStart(2, "0");
   const month = String(d.getMonth() + 1).padStart(2, "0");
   const year = d.getFullYear();
@@ -63,10 +64,11 @@ const formatDateTime = (dateString) => {
 
 const formatDateOnly = (dateString) => {
   if (!dateString) return "";
-  const d = new Date(dateString);
-  const day = String(d.getDate()).padStart(2, "0");
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const year = d.getFullYear();
+  const parts = dateString.split("T")[0].split("-");
+  const year = parts[0];
+  const month = parts[1];
+  const day = parts[2];
+
   return `${day}/${month}/${year}`;
 };
 

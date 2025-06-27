@@ -8,6 +8,8 @@ import CustomButton from "./CustomButton";
 import { ModalFeedback } from "../components/ModalFeedback";
 import { uploadImagemParaCloudinary } from "../services/cloudinaryService";
 import { apiService } from "../services/api";
+import { getEnderecoFromLatLng } from "../services/geolocationService";
+
 import {
   colors,
   typography,
@@ -33,6 +35,8 @@ const ConfirmationStep = ({
   const [modalMessage, setModalMessage] = useState("");
   const [modalType, setModalType] = useState("success");
 
+  const [endereco, setEndereco] = useState(null);
+
   useEffect(() => {
     const carregarEmailEUsuario = async () => {
       try {
@@ -57,6 +61,20 @@ const ConfirmationStep = ({
 
     carregarEmailEUsuario();
   }, []);
+
+  useEffect(() => {
+    const buscarEndereco = async () => {
+      if (location?.coords) {
+        const enderecoObtido = await getEnderecoFromLatLng(
+          location.coords.latitude,
+          location.coords.longitude
+        );
+        setEndereco(enderecoObtido || "Local não disponível");
+      }
+    };
+
+    buscarEndereco();
+  }, [location]);
 
   function filtrarCheckInsDoDia(checkIns) {
     const hoje = new Date();
@@ -129,11 +147,7 @@ const ConfirmationStep = ({
       const payload = {
         membroDesafio: { id: membroDesafioParaUsar },
         urlFoto,
-        local: location
-          ? `${location.coords.latitude.toFixed(
-              4
-            )}, ${location.coords.longitude.toFixed(4)}`
-          : "Local não disponível",
+        local: endereco || "Local não disponível",
         status: "ATIVO",
         dataHoraCheckin: getDataHoraBrasil(),
       };
@@ -195,11 +209,7 @@ const ConfirmationStep = ({
           <View style={styles.summaryItem}>
             <Text style={styles.summaryLabel}>📍 Localização:</Text>
             <Text style={styles.summaryValue}>
-              {location
-                ? `${location.coords.latitude.toFixed(
-                    4
-                  )}, ${location.coords.longitude.toFixed(4)}`
-                : "Obtida"}
+              {endereco || "Obtida"}
             </Text>
           </View>
 

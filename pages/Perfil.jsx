@@ -23,6 +23,9 @@ import { MaterialIcons } from "@expo/vector-icons";
 import DropdownModal from "../components/Modal";
 import { ModalConfirmacao } from "../components/ModalConfirm";
 import { getEnderecoFromLatLng } from "../services/geolocationService";
+import * as ImagePicker from "expo-image-picker";
+import { uploadImagemParaCloudinary } from "../services/cloudinaryService";
+
 const SPACING = 2;
 
 const { width, height } = Dimensions.get("window");
@@ -87,6 +90,8 @@ export const Perfil = ({ navigation }) => {
   const [loadingModal, setLoadingModal] = useState(false);
   const [pendingPrivateValue, setPendingPrivateValue] = useState(null);
   const [showPrivateConfirm, setShowPrivateConfirm] = useState(false);
+  const [showConfirmFoto, setShowConfirmFoto] = useState(false);
+  const [novaFotoUri, setNovaFotoUri] = useState(null);
 
   useEffect(() => {
     async function carregarEndereco() {
@@ -109,22 +114,21 @@ export const Perfil = ({ navigation }) => {
     carregarEndereco();
   }, [fotoSelecionada]);
 
-function somarTresHoras(dataHoraStr) {
-  const dataOriginal = new Date(dataHoraStr);
+  function somarTresHoras(dataHoraStr) {
+    const dataOriginal = new Date(dataHoraStr);
 
-  // Soma 3 horas (em milissegundos)
-  const dataAjustada = new Date(dataOriginal.getTime() + 3 * 60 * 60 * 1000);
+    // Soma 3 horas (em milissegundos)
+    const dataAjustada = new Date(dataOriginal.getTime() + 3 * 60 * 60 * 1000);
 
-  const dia = String(dataAjustada.getDate()).padStart(2, "0");
-  const mes = String(dataAjustada.getMonth() + 1).padStart(2, "0");
-  const ano = dataAjustada.getFullYear();
+    const dia = String(dataAjustada.getDate()).padStart(2, "0");
+    const mes = String(dataAjustada.getMonth() + 1).padStart(2, "0");
+    const ano = dataAjustada.getFullYear();
 
-  const horas = String(dataAjustada.getHours()).padStart(2, "0");
-  const minutos = String(dataAjustada.getMinutes()).padStart(2, "0");
+    const horas = String(dataAjustada.getHours()).padStart(2, "0");
+    const minutos = String(dataAjustada.getMinutes()).padStart(2, "0");
 
-  return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
-}
-
+    return `${dia}/${mes}/${ano} ${horas}:${minutos}`;
+  }
 
   useEffect(() => {
     const carregarEmailEUsuario = async () => {
@@ -374,6 +378,50 @@ function somarTresHoras(dataHoraStr) {
     );
   }
 
+  const handleSelecionarNovaFoto = async () => {
+    try {
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets.length > 0) {
+        const imagemSelecionada = result.assets[0].uri;
+        setNovaFotoUri(imagemSelecionada);
+        setShowConfirmFoto(true);
+      }
+    } catch (error) {
+      console.error("Erro ao selecionar foto:", error);
+      mostrarFeedback("error", "Não foi possível selecionar a foto.");
+    }
+  };
+
+  const handleConfirmarUploadFoto = async () => {
+    try {
+      setLoading(true);
+      setShowConfirmFoto(false);
+
+      const urlImagem = await uploadImagemParaCloudinary(novaFotoUri);
+
+      const usuarioAtualizado = await apiService.atualizarUsuario(usuario, {
+        ...usuario,
+        urlFoto: urlImagem,
+      });
+
+      setUsuario(usuarioAtualizado);
+      setDadosEditados(usuarioAtualizado);
+      mostrarFeedback("success", "Foto de perfil atualizada com sucesso!");
+    } catch (error) {
+      console.error("Erro ao atualizar foto de perfil:", error);
+      mostrarFeedback("error", "Não foi possível atualizar a foto de perfil.");
+    } finally {
+      setLoading(false);
+      setNovaFotoUri(null);
+    }
+  };
+
   const handleTogglePrivate = async () => {
     try {
       setLoading(true);
@@ -413,14 +461,20 @@ function somarTresHoras(dataHoraStr) {
         contentContainerStyle={styles.scrollContent}
       >
         <View style={styles.avatarSection}>
-          <Image
-            source={
-              usuario.urlFoto
-                ? { uri: usuario.urlFoto }
-                : require("../assets/imagens/avatar.png")
-            }
-            style={styles.avatar}
-          />
+          <TouchableOpacity
+            onPress={handleSelecionarNovaFoto}
+            activeOpacity={0.7}
+          >
+            <Image
+              source={
+                usuario.urlFoto
+                  ? { uri: usuario.urlFoto }
+                  : require("../assets/imagens/avatar.png")
+              }
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
+
           <Text style={styles.username}>{usuario.nome}</Text>
           <View style={styles.toggleContainer}>
             <View style={styles.toggleLabelContainer}>
@@ -648,6 +702,16 @@ function somarTresHoras(dataHoraStr) {
         onCancel={() => {
           setShowPrivateConfirm(false);
           setPendingPrivateValue(null);
+        }}
+      />
+
+      <ModalConfirmacao
+        visible={showConfirmFoto}
+        mensagem="Deseja atualizar sua foto de perfil?"
+        onConfirm={handleConfirmarUploadFoto}
+        onCancel={() => {
+          setShowConfirmFoto(false);
+          setNovaFotoUri(null);
         }}
       />
 
